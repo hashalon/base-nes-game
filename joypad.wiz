@@ -1,0 +1,53 @@
+
+import "nes";
+import "define";
+
+struct joypad {
+	btnA      : u8, 
+	btnB      : u8, 
+	btnSelect : u8, 
+	btnStart  : u8,
+	dpadY     : i8, 
+	dpadX     : i8,
+}
+
+in zeropage {
+	
+	// store user inputs for the frame
+	var joypad1, joypad2 : joypad;
+
+}
+
+in program {
+
+	// read the players' inputs
+	func read_joypads () {
+		
+		// latch the controllers
+		nes.joy.output = a = 1;
+		nes.joy.output = a = 0;
+		
+		// write the instructions inline
+		let JOY  = [joypad1, joypad2];
+		let READ = [
+			nes.joy.input1 & 0b11, 
+			nes.joy.input2 & 0b11
+		];
+		inline for let i in [0,1] {
+
+			JOY[i].btnA      = a = READ[i];
+			JOY[i].btnB      = a = READ[i];
+			JOY[i].btnSelect = a = READ[i];
+			JOY[i].btnStart  = a = READ[i];
+			
+			y = 0;
+			x = 0;
+			if {a = READ[i];} && !zero {++y;}
+			if {a = READ[i];} && !zero {--y;}
+			if {a = READ[i];} && !zero {++x;}
+			if {a = READ[i];} && !zero {--x;}
+			JOY[i].dpadY = y as i8;
+			JOY[i].dpadX = x as i8;
+		}
+	}
+}

@@ -1,0 +1,101 @@
+/**
+ * Allow to write text to the screen
+ * 
+ */
+
+import "nes";
+import "define";
+
+namespace text {
+
+    /* CONFIGURE */
+    // position the text on the screen
+    let PADDING  = 4; // padding on each side
+    let NB_LINES = 4; // number of lines of text
+
+    /* STATIC */
+    // high byte of nametable addresses
+    let TABLE_0 = 0x20;
+    let TABLE_1 = 0x24;
+    let TABLE_2 = 0x28;
+    let TABLE_3 = 0x2c;
+
+    /* COMPUTE */
+    let TXT_LEN = screen.WIDTH  - PADDING  * 2;
+    let TXT_BEG = screen.HEIGHT - NB_LINES - 2;
+
+    let LINE_STARTS = [
+        screen.WIDTH * (i + TXT_BEG) + PADDING
+        for let i in 0 .. (NB_LINES - 1)];
+
+    in zeropage {
+        var a0, a1, a2, a3 : u8;
+        var word0 @ &a0 : u16;
+        var addr0 @ &a2 : *u8;
+
+        // function write
+        var length : u8; // length of the string to write
+
+        // function print
+        var table_addr : u8; // table to print to
+        var line_index : u8; // line index for line_starts
+    }
+
+    in program {
+
+        // find the start of each line of text
+        const line_starts_high : [u8] = [>:LINE_STARTS[i]
+            for let i in 0 .. (NB_LINES - 1)];
+        const line_starts_low  : [u8] = [<:LINE_STARTS[i]
+            for let i in 0 .. (NB_LINES - 1)];
+
+
+        const hello : [u8] = "Hello World!\0";
+        const bye   : [u8] = "Goodbye, see you later...\0";
+
+        // write text at location on screen
+        func write (pos : u16 in word0, 
+            txt : (*u8) in addr0, off : u8 in y, len : u8 in length) 
+        {
+            a = nes.ppu.status; // reset the PPU high/low latch
+            // set start position for printing text
+            nes.ppu.address = a = >:pos;
+            nes.ppu.address = a = <:pos;
+
+            // x is already set
+            do {
+                nes.ppu.data = a = txt[y];
+                ++y;
+            } while y != len;
+        }
+
+        // print paragraph at the bottom of screen
+        func print (table_index : u8 in table_addr, txt : (*u8) in addr0) {
+            // print to screen over multi lines
+            y = 0; // iterate over the text
+            line_index = x = 0; // start at line 0
+
+            print_on_new_line: // reset ppu address to write new line
+            
+            x = line_index;
+            a = nes.ppu.status; // reset the PPU high/low latch
+            // set start position for printing text
+            nes.ppu.address = a = line_starts_high[x] + table_index;
+            nes.ppu.address = a = line_starts_low [x];
+            line_index = ++x;
+
+            x = 0; // iterate over line
+            while {a = txt[y];} && !zero {
+                ++x; // next tile
+                ++y; // next character
+
+                // on line return, just proceed to new line
+                goto print_on_new_line if a == '\n';
+
+                // print the character
+                nes.ppu.data = a;
+                goto print_on_new_line if x == TXT_LEN;
+            }
+        }
+    }
+}

@@ -1,0 +1,71 @@
+/**
+ * Script used to debug stuff
+ */
+
+import "nes";
+import "define";
+import "nametable";
+import "palette";
+import "joypad";
+import "draw";
+import "text";
+
+namespace debug {
+
+    in program {
+        const l000 = "000"; const l020 = "020";
+        const l040 = "040"; const l060 = "060";
+        const l080 = "080"; const l0a0 = "0A0";
+        const l0c0 = "0C0"; const l0e0 = "0E0";
+
+        const l100 = "100"; const l120 = "120";
+        const l140 = "140"; const l160 = "160";
+        const l180 = "180"; const l1a0 = "1A0";
+        const l1c0 = "1C0"; const l1e0 = "1E0";
+
+        const l200 = "200"; const l220 = "220";
+        const l240 = "240"; const l260 = "260";
+        const l280 = "280"; const l2a0 = "2A0";
+        const l2c0 = "2C0"; const l2e0 = "2E0";
+
+        const l300 = "300"; const l320 = "320";
+        const l340 = "340"; const l360 = "360";
+        const l380 = "380";
+
+        func display_line_addresses () {
+            
+            let TXT = [
+                l000, l020, l040, l060, l080, l0a0, l0c0, l0e0,
+                l100, l120, l140, l160, l180, l1a0, l1c0, l1e0,
+                l200, l220, l240, l260, l280, l2a0, l2c0, l2e0,
+                l300, l320, l340, l360, l380,
+            ];
+            let ADDR = [
+                0x000, 0x020, 0x040, 0x060, 0x080, 0x0a0, 0x0c0, 0x0e0,
+                0x100, 0x120, 0x140, 0x160, 0x180, 0x1a0, 0x1c0, 0x1e0,
+                0x200, 0x220, 0x240, 0x260, 0x280, 0x2a0, 0x2c0, 0x2e0,
+                0x300, 0x320, 0x340, 0x360, 0x380,
+            ];
+
+            inline for let i in 0 .. 28 {
+                let addr_ = nes.ppu.ADDRESS_NAMETABLE_0 + ADDR[i] + 1;
+                let text_ = &(TXT[i]);
+
+                >:text.word0 = a = >:addr_;
+                <:text.word0 = a = <:addr_;
+                >:text.addr0 = a = >:text_;
+                <:text.addr0 = a = <:text_;
+                text.write(text.word0, text.addr0, y = 0, text.length = a = 3);
+            }
+        }
+
+        const test_text = "MY NAME IS MARCO,\nI COME FROM FAR AWAY.\0";
+
+        func test_print () {
+            text.table_addr = a = text.TABLE_0;
+            >:text.addr0 = a = >:&test_text;
+            <:text.addr0 = a = <:&test_text;
+            text.print(text.table_addr, text.addr0);
+        }
+    }
+}

@@ -1,0 +1,64 @@
+/**
+ * Define base memory layout
+ */
+
+// Specify that the target system is the NES
+config {
+	format          = "nes",
+    battery         = false,
+	vertical_mirror = true ,
+}
+
+import "nes";
+
+/**
+ * vardata           : uninitialized RAM
+ * prgdata/constdata : program and constants (cannot be written to)
+ * chrdata           : store tiles (NES specific)
+ * varinitdata       : initialized RAM
+ * */
+
+bank zeropage  @ 0x0000 : [vardata; 0x0100]; // for variables
+bank stack     @ 0x0100 : [vardata; 0x0100]; // for stack
+bank oam       @ 0x0200 : [vardata; 0x0100]; // for sprites
+bank RAM       @ 0x0300 : [vardata; 0x0500]; // ...
+bank program   @ 0x8000 : [prgdata; 0x8000]; // for instructions & constants
+bank chr                : [chrdata; 0x2000]; // for graphics
+
+in zeropage {
+	
+	var // 16 basic variables
+	a0, a1, a2, a3, 
+	a4, a5, a6, a7, 
+	a8, a9, aA, aB, 
+	aC, aD, aE, aF : u8;
+
+	var // 4 words
+	w0 @ &a0, 
+	w1 @ &a2, 
+	w2 @ &a4, 
+	w3 @ &a6 : u16;
+
+	var // 4 pointers
+	ptr0 @ &a8, 
+	ptr1 @ &aA, 
+	ptr2 @ &aC, 
+	ptr3 @ &aE : *u8;
+}
+
+in oam {
+	var oam_buffer : [u8; 0x100];
+}
+
+in chr {
+	const = embed "res/bg-tiles.chr";
+	const = embed "res/fg-tiles.chr";
+}
+
+namespace screen {
+	let PIXEL_WIDTH  = 256;
+	let PIXEL_HEIGHT = 240;
+
+	let WIDTH  = PIXEL_WIDTH  / 8;
+	let HEIGHT = PIXEL_HEIGHT / 8;
+}

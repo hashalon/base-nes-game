@@ -1,0 +1,80 @@
+/**
+ * Clean little game for the NES
+ * Author: Olivier SCHYNS
+ * */
+
+import "nes";
+import "define";
+import "nametable";
+import "palette";
+import "draw";
+import "joypad";
+
+import "debug";
+
+in program {
+	// start of the program
+	func main () {
+
+		// disable decimal arithmetic and interrupts
+		decimal     = false;
+		nointerrupt = true;
+
+		s = x = 0xff; // init stack
+
+		// disable rendering
+		nes.ppu.control = x = 0;
+		nes.ppu.mask    = x;
+
+		// disable DMC interrupts
+		nes.apu.frame_counter = a = nes.apu.FRAME_COUNTER_IRQ_DISABLE;
+
+		// wait for PPU (2 vertical blanks)
+		do {
+			do {} while !nes.ppu.status$7;
+			++x;
+		} while x != 2;
+
+		nametable.init();
+		palette  .init();
+
+		/* Initialize screen here */
+		// <code>
+		debug.test_print();
+		// </code>
+		
+		// reset scrolling
+		a = nes.ppu.status;
+		nes.ppu.scroll = x = 0;
+		nes.ppu.scroll = x;
+
+		// re-enable rendering
+		nes.ppu.control = y = 0
+		| nes.ppu.CONTROL_NMI
+		| nes.ppu.CONTROL_OBJ_8x16;
+		nes.ppu.mask = y = 0
+		| nes.ppu.MASK_LEFTMOST_BG
+		| nes.ppu.MASK_RENDER_BG
+		| nes.ppu.MASK_LEFTMOST_OBJ
+		| nes.ppu.MASK_RENDER_OBJ;
+
+		// game loop is handled with interrupts
+		nointerrupt = false; // re-enable interrupts
+
+		// infinite loop
+		while true {
+
+			/* put code here */
+			// <code>
+			read_joypads();
+			// </code>
+
+			// wait for draw request
+			draw.wait_request();
+		}
+	}
+
+    const @ 0xFFFA = [draw.draw, main, draw.scanline];
+}
+
+

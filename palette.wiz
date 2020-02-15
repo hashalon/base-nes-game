@@ -1,0 +1,79 @@
+/**
+ * Handle palettes' definition and operations
+ */
+
+import "nes";
+import "define";
+
+namespace palette {
+    in zeropage {
+        var tmp0, tmp1 : u8;
+        var addr0 @ &tmp0 : *u8;
+    }
+
+    in program {
+        const base : [u8] = [
+            // background tiles
+            0x0f, 0x01, 0x16, 0x30, // metro
+            0x0f, 0x1c, 0x2c, 0x30, // jungle
+            0x0f, 0x02, 0x21, 0x37, // aqua
+            0x0f, 0x04, 0x13, 0x3c, // mystic
+            // sprites
+            0x0f, 0x06, 0x11, 0x30, // metro
+            0x0f, 0x0f, 0x17, 0x01, // jungle
+            0x0f, 0x01, 0x22, 0x38, // aqua
+            0x0f, 0x03, 0x14, 0x3b, // mystic
+        ];
+
+        // low byte of palette addresses
+		let BG_0 = 0x00; let OBJ_0 = 0x10;
+		let BG_1 = 0x04; let OBJ_1 = 0x14;
+		let BG_2 = 0x08; let OBJ_2 = 0x18;
+		let BG_3 = 0x0C; let OBJ_3 = 0x1C;
+		
+        // some palette presets
+		const metro  : [u8] = [0x01, 0x16, 0x30];
+		const jungle : [u8] = [0x09, 0x17, 0x3a];
+		const aqua   : [u8] = [0x02, 0x21, 0x38];
+		const mystic : [u8] = [0x03, 0x14, 0x3c];
+		const candy  : [u8] = [0x05, 0x24, 0x37];
+		const icy    : [u8] = [0x00, 0x2c, 0x30];
+		const pine   : [u8] = [0x0c, 0x2b, 0x3a];
+
+        // load the palette
+        func load (target : u8 in x, pal : (*u8) in addr0) {
+            a = nes.ppu.status; // reset the PPU high/low latch
+            // all palette addresses start with 0x3F 
+            nes.ppu.address = a = >:nes.ppu.ADDRESS_PALETTE_DATA;
+            nes.ppu.address = a = target;
+
+            // fill the four colors of the palette
+            nes.ppu.data = a = 0x0f;
+            y = 0;
+            nes.ppu.data = a = pal[y]; ++y;
+            nes.ppu.data = a = pal[y]; ++y;
+            nes.ppu.data = a = pal[y];
+        }
+
+        // initialize the palette
+        func init () {
+            a = nes.ppu.status; // reset the PPU high/low latch
+            // setup the PPU to copy to the palette
+            nes.ppu.address = a = >:nes.ppu.ADDRESS_PALETTE_DATA;
+            nes.ppu.address = a = <:nes.ppu.ADDRESS_PALETTE_DATA;
+
+            // clear the palette
+            x = 0;
+            do {
+                nes.ppu.data = a = palette.base[x];
+                ++x;
+            } while x != palette.base.len;
+            
+
+            // pass pointer to array as parameter
+            >:addr0 = a = >:&palette.candy;
+            <:addr0 = a = <:&palette.candy;
+            load(x = palette.BG_1, addr0);
+        }
+    }
+}

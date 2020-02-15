@@ -1,0 +1,34 @@
+/**
+ * Handle nametables
+ */
+
+import "nes";
+import "define";
+
+namespace nametable {
+    in zeropage {
+
+    }
+    in program {
+        
+        // initialize the nametable
+        func init () {
+            a = nes.ppu.status; // reset the PPU high/low latch
+            // setup the PPU to copy to the nametable
+            nes.ppu.address = a = >:nes.ppu.ADDRESS_NAMETABLE_DATA;
+            nes.ppu.address = a = <:nes.ppu.ADDRESS_NAMETABLE_DATA;
+
+            // clear the nametable
+            x = >:nes.ppu.NAMETABLE_SIZE * 2;
+            do {
+                y = 0;
+                do {
+                    nes.ppu.data = a;
+                    ++y;
+                } while !zero;
+                --x;
+            } while !zero;
+        }
+
+    }
+}
