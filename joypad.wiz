@@ -2,7 +2,7 @@
 import "nes";
 import "define";
 
-struct joypad {
+struct Joypad {
 	btnA      : u8, 
 	btnB      : u8, 
 	btnSelect : u8, 
@@ -14,7 +14,7 @@ struct joypad {
 in zeropage {
 	
 	// store user inputs for the frame
-	var joypad1, joypad2 : joypad;
+	var joypad1, joypad2 : Joypad;
 
 }
 
@@ -33,7 +33,7 @@ in program {
 			nes.joy.input1 & 0b11, 
 			nes.joy.input2 & 0b11
 		];
-		inline for let i in [0,1] {
+		inline for let i in 0 .. 1 {
 
 			JOY[i].btnA      = a = READ[i];
 			JOY[i].btnB      = a = READ[i];

@@ -9,6 +9,7 @@ import "nametable";
 import "palette";
 import "draw";
 import "joypad";
+import "music";
 
 import "debug";
 

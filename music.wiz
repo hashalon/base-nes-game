@@ -1,0 +1,269 @@
+/**
+ * Handle musics and notes
+ */
+
+import "nes";
+import "define";
+
+namespace music {
+    
+    let TEMPO = 60;
+    
+    // tone of square pulses
+    let TONE_WEAK   = 0b00000000;
+    let TONE_MID    = 0b01000000;
+    let TONE_STRONG = 0b11000000;
+
+    // set the volume to mute
+    let SILENCE = 0b0000;
+
+    let PULSE_PRESET = 0 
+    | nes.apu.pulse.CONTROL_LENGTH_COUNTER_DISABLE 
+    | nes.apu.pulse.CONTROL_VOLUME_CONSTANT;
+
+    let NOISE_PRESET = 0 
+    | nes.apu.noise.CONTROL_LENGTH_COUNTER_DISABLE 
+    | nes.apu.noise.CONTROL_VOLUME_CONSTANT;
+
+    namespace melody {
+        in program {
+            // Au clair de la Lune
+            const p0 : [u8] = [DO, DO, DO, RE, MI, RE,    DO, MI, RE, RE, DO,    MUTE, END];
+            const d0 : [u8] = [ 1,  1,  1,  1,  2,  2,     1,  1,  1,  1,  4,       4, END];
+        }
+    }
+
+    namespace compo {
+        namespace pl1 {
+            let SEQUENCE_PITCH    = [melody.p0];
+            let SEQUENCE_DURATION = [melody.d0];
+            in program {
+                const volume : [u8] = [0xF];
+                const shift  : [u8] = [3 + 12*2];
+            }
+        }
+        namespace pl2 {
+            let SEQUENCE_PITCH    = [melody.p0];
+            let SEQUENCE_DURATION = [melody.d0];
+            in program {
+                const volume : [u8] = [0xF];
+                const shift  : [u8] = [3 + 12*2];
+            }
+        }
+        namespace tri {
+            let SEQUENCE_PITCH    = [melody.p0];
+            let SEQUENCE_DURATION = [melody.d0];
+            in program {
+                const volume : [u8] = [0xF];
+                const shift  : [u8] = [3 + 12*2];
+            }
+        }
+    }
+    
+    struct Channel {
+        // addresses of the melody
+        addr_pitch    : *u8, 
+        addr_duration : *u8,
+
+        // position in the composition
+        melody_index  : u8,
+        note_index    : u8, 
+        tempo_counter : u8,
+
+        shift  : u8, // shift the index of the pitch
+        volume : u8, // volume of the channel on 4bits
+    }
+
+    in zeropage {
+        // addresses of the melody
+        var tmp0, tmp1, tmp2, tmp3: u8;
+        var addr0 @ &tmp0, addr1 @ &tmp2 : *u8;
+
+        // count the length of a tempo beat
+        var frame_counter : u8;
+
+        // the four channels we can use
+        var pulse1, pulse2, triangle : Channel;
+    }
+
+    in program {
+
+        // move on to next note
+        func next_tempo () {
+            let SEQ_P_H = [compo.pl1.seq_p_h, compo.pl2.seq_p_h, compo.tri.seq_p_h];
+            let SEQ_P_L = [compo.pl1.seq_p_l, compo.pl2.seq_p_l, compo.tri.seq_p_l];
+            let SEQ_D_H = [compo.pl1.seq_d_h, compo.pl2.seq_d_h, compo.tri.seq_d_h];
+            let SEQ_D_L = [compo.pl1.seq_d_l, compo.pl2.seq_d_l, compo.tri.seq_d_l];
+            let VOLUME  = [compo.pl1.volume , compo.pl2.volume , compo.tri.volume ];
+            let SHIFT   = [compo.pl1.shift  , compo.pl2.shift  , compo.tri.shift  ];
+
+            // iterate over the four channels
+            let PITCH_HIGH = [nes.apu.pulse1.high, nes.apu.pulse2.high, nes.apu.triangle.high];
+            let PITCH_LOW  = [nes.apu.pulse1.low , nes.apu.pulse2.low , nes.apu.triangle.low ];
+            let CHANNEL = [pulse1, pulse2, triangle];
+            inline for let i in 0 .. 2 {
+
+                // decrement the tempo counter
+                x = CHANNEL[i].tempo_counter;
+                if {--x;} && zero {
+
+                    // once it reaches zero, move on to next note
+                    y = CHANNEL[i].note_index; ++y;
+
+                    // first read duration, 
+                    // it indicates if the melody is over
+                    if {a = CHANNEL[i].addr_duration[y];} && zero {
+                        // move on to next melody
+                        x = CHANNEL[i].melody_index; ++x;
+                        if x == SHIFT[i].len {
+                            CHANNEL[i].melody_index = x = 0;
+                        }
+                        >:CHANNEL[i].addr_pitch    = a = SEQ_P_H[i][x];
+                        <:CHANNEL[i].addr_pitch    = a = SEQ_P_L[i][x];
+                        >:CHANNEL[i].addr_duration = a = SEQ_D_H[i][x];
+                        <:CHANNEL[i].addr_duration = a = SEQ_D_L[i][x];
+                        CHANNEL[i].volume = a = VOLUME[i][x];
+                        CHANNEL[i].shift  = a = SHIFT [i][x];
+
+                        // start at beginning of new melody
+                        CHANNEL[i].note_index = y = 0;
+                        a = CHANNEL[i].addr_duration[y];
+                    }
+                    // set new note
+                    CHANNEL[i].tempo_counter = a;
+                    x = a = CHANNEL[i].addr_pitch[y];
+                    PITCH_HIGH[i] = a = period.high[x];
+                    PITCH_LOW [i] = a = period.low [x];
+
+                } else {CHANNEL[i].tempo_counter = x;}
+            }
+        }
+
+        // progress over the music
+        func next_frame () {
+            // decrement the tempo counter until it reaches zero
+            x = frame_counter;
+            if {--x;} && zero {
+                frame_counter = x = TEMPO;
+
+                next_tempo();
+
+            } else {frame_counter = x;}
+        }
+
+        // initialize the sound system
+        func init () {
+            // enable channels here
+            nes.apu.enable = a = 0
+            | nes.apu.ENABLE_PULSE1
+            | nes.apu.ENABLE_PULSE2
+            | nes.apu.ENABLE_TRIANGLE
+            //| nes.apu.ENABLE_NOISE
+            ;
+
+            pulse1.melody_index  = a = 0;
+            pulse1.note_index    = a = 0;
+            pulse1.tempo_counter = a = melody.p0[0];
+            pulse1.shift         = a = 3 + 12*2;
+            pulse1.volume        = a = SILENCE;
+
+            pulse2.melody_index  = a = 0;
+            pulse2.note_index    = a = 0;
+            pulse2.tempo_counter = a = melody.p0[0];
+            pulse2.shift         = a = 3 + 12*2;
+            pulse2.volume        = a = SILENCE;
+
+            triangle.melody_index  = a = 0;
+            triangle.note_index    = a = 0;
+            triangle.tempo_counter = a = melody.p0[0];
+            triangle.shift         = a = 3 + 12*2;
+            triangle.volume        = a = SILENCE;
+
+            // initialize the 4 channels
+            nes.apu.pulse1.control = a = 0
+            | TONE_STRONG 
+            | PULSE_PRESET 
+            | SILENCE; //volume_square1;
+
+            nes.apu.pulse2.control = a = 0 
+            | TONE_STRONG 
+            | PULSE_PRESET 
+            | SILENCE; //volume_square2;
+
+            nes.apu.triangle.control = a = 0
+            | nes.apu.triangle.CONTROL_LINEAR_COUNTER_ENABLE
+            | SILENCE; //either switch on or off
+
+            nes.apu.noise.control = a = 0
+            | NOISE_PRESET
+            | SILENCE; //volume_noise;
+        }
+    }
+
+    namespace melody {
+        // special control symbols
+        let MUTE = 0xFF;
+        let END  = 0x00; // read end of melody on duration array
+
+        // solfege helper
+        let DO = 0; let RE  = 2; let MI = 4;
+        let FA = 5; let SOL = 7; let LA = 9; let SI = 11;
+        let C = 0; let D = 2; let E = 4; 
+        let F = 5; let G = 7; let A = 9; let B = 11;
+    }
+
+    namespace compo {
+        in program {
+            namespace pl1 {
+                const seq_p_h : [u8] = [>:&i for let i in SEQUENCE_PITCH   ];
+                const seq_p_l : [u8] = [<:&i for let i in SEQUENCE_PITCH   ];
+                const seq_d_h : [u8] = [>:&i for let i in SEQUENCE_DURATION];
+                const seq_d_l : [u8] = [<:&i for let i in SEQUENCE_DURATION];
+            }
+            namespace pl2 {
+                const seq_p_h : [u8] = [>:&i for let i in SEQUENCE_PITCH   ];
+                const seq_p_l : [u8] = [<:&i for let i in SEQUENCE_PITCH   ];
+                const seq_d_h : [u8] = [>:&i for let i in SEQUENCE_DURATION];
+                const seq_d_l : [u8] = [<:&i for let i in SEQUENCE_DURATION];
+            }
+            namespace tri {
+                const seq_p_h : [u8] = [>:&i for let i in SEQUENCE_PITCH   ];
+                const seq_p_l : [u8] = [<:&i for let i in SEQUENCE_PITCH   ];
+                const seq_d_h : [u8] = [>:&i for let i in SEQUENCE_DURATION];
+                const seq_d_l : [u8] = [<:&i for let i in SEQUENCE_DURATION];
+            }
+        }
+    }
+
+    // pitch of notes from deepest to highest
+    namespace period {
+        let TABLE = [
+                                                                           0x7F1, 0x780, 0x713, // A1-B1  (00-02)
+            0x6AD, 0x64D, 0x5F3, 0x59D, 0x54D, 0x500, 0x4B8, 0x475, 0x435, 0x3F8, 0x3BF, 0x389, // C2-B2  (03-0E)
+            0x356, 0x326, 0x2F9, 0x2CE, 0x2A6, 0x27F, 0x25C, 0x23A, 0x21A, 0x1FB, 0x1DF, 0x1C4, // C3-B3  (0F-1A)
+            0x1AB, 0x193, 0x17C, 0x167, 0x151, 0x13F, 0x12D, 0x11C, 0x10C, 0x0FD, 0x0EF, 0x0E2, // C4-B4  (1B-26)
+            0x0D2, 0x0C9, 0x0BD, 0x0B3, 0x0A9, 0x09F, 0x096, 0x08E, 0x086, 0x07E, 0x077, 0x070, // C5-B5  (27-32)
+            0x06A, 0x064, 0x05E, 0x059, 0x054, 0x04F, 0x04B, 0x046, 0x042, 0x03F, 0x03B, 0x038, // C6-B6  (33-3E)
+            0x034, 0x031, 0x02F, 0x02C, 0x029, 0x027, 0x025, 0x023, 0x021, 0x01F, 0x01D, 0x01B, // C7-B7  (3F-4A)
+            0x01A, 0x018, 0x017, 0x015, 0x014, 0x013, 0x012, 0x011, 0x010, 0x00F, 0x00E, 0x00D, // C8-B8  (4B-56)
+            0x00C, 0x00C, 0x00B, 0x00A, 0x00A, 0x009, 0x008,                                    // C9-F#9 (57-5D)
+        ];
+
+        // period of notes splitted over two arrays
+        // (It is possible to optimize high byte table since with a simple lookup table)
+        /*
+            if i <  3 : 0x7
+            if i <  5 : 0x6
+            if i <  9 : 0x5
+            if i < 12 : 0x4
+            if i < 17 : 0x3
+            if i < 24 : 0x2
+            if i < 36 : 0x1
+            else 0x0
+        */
+        in program {
+            const high : [u8] = [>:i for let i in TABLE];
+            const low  : [u8] = [<:i for let i in TABLE];
+        }
+    }
+}
