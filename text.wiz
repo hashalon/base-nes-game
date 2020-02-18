@@ -75,7 +75,8 @@ namespace text {
             y = 0; // iterate over the text
             line_index = x = 0; // start at line 0
 
-            print_on_new_line: // reset ppu address to write new line
+        // reset ppu address to write new line
+        print_on_new_line:
             
             x = line_index;
             a = nes.ppu.status; // reset the PPU high/low latch

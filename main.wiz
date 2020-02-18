@@ -38,6 +38,7 @@ in program {
 
 		nametable.init();
 		palette  .init();
+		music    .init();
 
 		/* Initialize screen here */
 		// <code>
@@ -68,6 +69,7 @@ in program {
 			/* put code here */
 			// <code>
 			read_joypads();
+			music.next_frame();
 			// </code>
 
 			// wait for draw request

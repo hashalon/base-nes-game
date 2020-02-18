@@ -67,11 +67,8 @@ namespace music {
         index_melody  :  u8, // position in the composition
         index_note    :  u8, // position in the sequence
         tempo_counter :  u8, // count tempo beats
-
-        // [write only] not read in 'next_tempo'
-        period : u16, // period of the channel
-        volume :  u8, // volume + controls
-        octave :  u8, // set the octave to use
+        octave        :  u8, // set the octave to use
+        volume        :  u8, // volume + controls
     }
 
     in zeropage {
@@ -84,11 +81,23 @@ namespace music {
 
         // the three channels we can use (+ work channel)
         var work, pulse1, pulse2, triangle : Channel;
+
+        // period to write in the appropriate channel
+        var tmp_period : u16;
+
+        // flag to specify that the channel has reached a new melody
+        var is_new_melody : u8;
     }
 
     // operate on the channels in sequence
     let CHANNELS = [pulse1, pulse2, triangle];
     let MUSICS   = [melody.pulse1, melody.pulse2, melody.triangle];
+
+    // addresses where to write values
+    let NES_HIGH = [nes.apu.pulse1.high   , nes.apu.pulse2.high   , nes.apu.triangle.high   ];
+    let NES_LOW  = [nes.apu.pulse1.low    , nes.apu.pulse2.low    , nes.apu.triangle.low    ];
+    let NES_CTRL = [nes.apu.pulse1.control, nes.apu.pulse2.control, nes.apu.triangle.control];
+
 
     in program {
 
@@ -116,28 +125,55 @@ namespace music {
                 CHANNELS[i].octave = a = MUSICS[i][3];
                 CHANNELS[i].tempo_counter = a = START_MELODIES[i][0];
             }
+            frame_counter = a = TEMPO;
         }
 
         // progress over the music
         func next_frame () {
             // decrement the tempo counter until it reaches zero
             x = frame_counter;
-            if {--x;} && zero {
-                frame_counter = x = TEMPO;
-                
-                // for each of the three channels
-                inline for let i in 0 .. 2 {
-                    // TODO... copy its values into the work channel
-                    next_tempo(work, addr0); // compute new values
-                    // TODO... copy back the values into the channel
-                    // TODO... apply changes
-                }
+            if {--x;} && !zero {
+                frame_counter = x;
+                return;
+            }
+            frame_counter = x = TEMPO;
 
-            } else {frame_counter = x;}
+            // for each of the three channels
+            inline for let i in 0 .. 2 {
+                // copy values into the work channel
+                >:work.addr = a = >:CHANNELS[i].addr;
+                <:work.addr = a = <:CHANNELS[i].addr;
+                work.index_melody  = a = CHANNELS[i].index_melody;
+                work.index_note    = a = CHANNELS[i].index_note;
+                work.tempo_counter = a = CHANNELS[i].tempo_counter;
+                work.octave = a = CHANNELS[i].octave;
+                // [?] we don't need to copy volume because it is not read here
+
+                next_tempo(work, addr0); // compute new values
+                // copy back the values into the channel and apply changes
+                CHANNELS[i].index_note    = a = work.index_note;
+                CHANNELS[i].tempo_counter = a = work.tempo_counter;
+                // copy the period
+                NES_HIGH[i] = a = >:tmp_period;
+                NES_LOW [i] = a = <:tmp_period;
+
+                // if the channel started a new melody,
+                // copy the elements associated with it
+                if {a = is_new_melody;} && !zero {
+                    >:CHANNELS[i].addr = a = >:work.addr;
+                    <:CHANNELS[i].addr = a = <:work.addr;
+                    CHANNELS[i].index_melody = a = work.index_melody;
+                    CHANNELS[i].octave = a = work.octave;
+                    CHANNELS[i].volume = a = work.volume;
+                    NES_CTRL[i] = a; // don't forget to notify the APU
+                }
+            }
         }
 
         // function to operate on a channel
         func next_tempo (channel : Channel in work, music : (*u8) in addr0) {
+            is_new_melody = a = 0b0; // reset flag
+
             // decrement the tempo counter
             x = channel.tempo_counter;
             if {--x;} && zero {
@@ -160,6 +196,7 @@ namespace music {
                     channel.volume = a = music[y]; ++y;
                     channel.octave = a = music[y]; ++y;
                     channel.index_melody = y;
+                    is_new_melody = a = 0b1; // new melody flag
 
                     // start at beginning of new melody
                     channel.index_note = y = 0;
@@ -173,8 +210,8 @@ namespace music {
                 // find the pitch of the sound to use for the new note
                 y = a;
                 x = a = channel.octave + music[y];
-                >:channel.period = a = period.high[x];
-                <:channel.period = a = period.low [x];
+                >:tmp_period = a = period.high[x];
+                <:tmp_period = a = period.low [x];
             
             } else {channel.tempo_counter = x;}
         }
