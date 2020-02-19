@@ -7,7 +7,7 @@ import "define";
 
 namespace music {
     
-    let TEMPO = 60;
+    let TEMPO = 10;
     
     // tone of square pulses
     let TONE_WEAK   = 0b00000000;
@@ -121,9 +121,10 @@ namespace music {
             inline for let i in 0 .. 2 {
                 >:CHANNELS[i].addr = a = >:&START_MELODIES[i][0];
                 <:CHANNELS[i].addr = a = <:&START_MELODIES[i][0];
-                CHANNELS[i].volume = a = MUSICS[i][2];
-                CHANNELS[i].octave = a = MUSICS[i][3];
                 CHANNELS[i].tempo_counter = a = START_MELODIES[i][0];
+                CHANNELS[i].octave = a = MUSICS[i][3];
+                CHANNELS[i].volume = a = MUSICS[i][2];
+                NES_CTRL[i] = a;
             }
             frame_counter = a = TEMPO;
         }
@@ -148,6 +149,10 @@ namespace music {
                 work.tempo_counter = a = CHANNELS[i].tempo_counter;
                 work.octave = a = CHANNELS[i].octave;
                 // [?] we don't need to copy volume because it is not read here
+
+                // copy the address of the music too
+                >:addr0 = a = >:&MUSICS[i];
+                <:addr0 = a = <:&MUSICS[i];
 
                 next_tempo(work, addr0); // compute new values
                 // copy back the values into the channel and apply changes
@@ -204,12 +209,11 @@ namespace music {
                 }
                 // write duration of new note
                 channel.tempo_counter = a; ++y;
-                a = channel.addr[y]; // read pitch
+                // read pitch add octave shift
+                x = a = channel.octave + channel.addr[y];
                 channel.index_note = ++y;
 
                 // find the pitch of the sound to use for the new note
-                y = a;
-                x = a = channel.octave + music[y];
                 >:tmp_period = a = period.high[x];
                 <:tmp_period = a = period.low [x];
             
