@@ -7,7 +7,7 @@ import "nes";
 import "define";
 import "nametable";
 import "palette";
-import "draw";
+import "video";
 import "joypad";
 import "music";
 
@@ -38,7 +38,7 @@ in program {
 
 		nametable.init();
 		palette  .init();
-		music    .init();
+		//music    .init();
 
 		/* Initialize screen here */
 		// <code>
@@ -60,7 +60,6 @@ in program {
 		| nes.ppu.MASK_LEFTMOST_OBJ
 		| nes.ppu.MASK_RENDER_OBJ;
 
-		// game loop is handled with interrupts
 		nointerrupt = false; // re-enable interrupts
 
 		// infinite loop
@@ -69,15 +68,15 @@ in program {
 			/* put code here */
 			// <code>
 			read_joypads();
-			music.next_frame();
+			//music.next_frame();
 			// </code>
 
 			// wait for draw request
-			draw.wait_request();
+			video.wait_request();
 		}
 	}
 
-    const @ 0xFFFA = [draw.draw, main, draw.scanline];
+    const @ 0xFFFA = [video.vblank, main, video.scanline];
 }
 
 

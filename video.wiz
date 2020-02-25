@@ -1,0 +1,96 @@
+/**
+ * Handle drawing to the screen
+ */
+
+import "nes";
+import "define";
+
+namespace video {
+
+    in zeropage {
+
+        // specify if the sprites should be refreshed
+        var draw_request : u8;
+
+        // count the number of line crossed in the scanline interrupt
+        var irq_call_count : u8;
+    }
+
+    // bit map for drawing
+    let REQUEST_WAIT_FRAME     = 0b01;
+    let REQUEST_UPDATE_SPRITES = 0b10;
+
+    in program {
+
+        #[nmi] func vblank () {
+            push(a);
+            push(a = x);
+            push(a = y);
+            
+            // reset scroll
+            a = nes.ppu.status;
+            nes.ppu.scroll = a = 0; // reset scroll X
+            nes.ppu.scroll = a;     // reset scroll Y
+            irq_call_count = a;     // reset counter
+            setup_irq(x = 64);
+
+            /* put code here */
+
+            if {
+                a = draw_request & REQUEST_UPDATE_SPRITES;
+            } && !zero {
+                nes.ppu.oam.address = a = <:&oam_buffer;
+                nes.ppu.oam.dma     = a = >:&oam_buffer;
+            }
+            draw_request = a = 0;
+            
+            /* put code here */		
+            
+            y = a = pop();
+            x = a = pop();
+            a = pop();
+        }
+
+        #[irq] func scanline () {
+            push(a);
+            push(a = x);
+            push(a = y);
+            
+            //* <code>
+            // acknowledge IRQ
+            //nes.mmc3.irq.disable = a;
+            x = irq_call_count;
+            irq_call_count = ++x;
+            if x < 16 {
+                a = nes.ppu.status;
+                nes.ppu.scroll = x; // reset scroll X
+                nes.ppu.scroll = a = 0; // reset scroll Y
+                setup_irq(a = 8);
+
+            } else {nes.mmc3.irq.disable = a;}
+            // </code> */
+            
+            y = a = pop();
+            x = a = pop();
+            a = pop();
+        }
+
+        // setup IRQ call for per-scanline scrolling
+        func setup_irq (wait_scanlines : u8 in a) {
+            nes.mmc3.irq.disable = a; // acknowledge pending interrupts
+            nes.mmc3.irq.latch   = wait_scanlines;
+            nes.mmc3.irq.reload  = wait_scanlines;
+            nes.mmc3.irq.disable = a; // latch in the countdown value
+            nes.mmc3.irq.enable  = a; // enable the IRQ counter
+        }
+
+        // wait for draw request
+        inline func wait_request () {
+            draw_request = a = 0
+                | REQUEST_WAIT_FRAME 
+                | REQUEST_UPDATE_SPRITES;
+
+            do {a = draw_request;} while !zero;
+        }
+    }
+}

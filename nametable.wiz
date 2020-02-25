@@ -20,6 +20,7 @@ namespace nametable {
 
             // clear the nametable
             x = >:nes.ppu.NAMETABLE_SIZE * 2;
+            a = 4;
             do {
                 y = 0;
                 do {
@@ -29,6 +30,5 @@ namespace nametable {
                 --x;
             } while !zero;
         }
-
     }
 }

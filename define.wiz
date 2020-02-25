@@ -4,9 +4,10 @@
 
 // Specify that the target system is the NES
 config {
-	format          = "nes",
-    battery         = false,
-	vertical_mirror = true ,
+	format          = "nes" ,
+    battery         = false ,
+	vertical_mirror = true  ,
+	cart_type       = "mmc3", // mapper for per-scanline scrolling
 }
 
 import "nes";
