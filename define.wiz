@@ -27,24 +27,12 @@ bank program   @ 0x8000 : [prgdata; 0x8000]; // for instructions & constants
 bank chr                : [chrdata; 0x2000]; // for graphics
 
 in zeropage {
-	
-	var // 16 basic variables
-	a0, a1, a2, a3, 
-	a4, a5, a6, a7, 
-	a8, a9, aA, aB, 
-	aC, aD, aE, aF : u8;
+	var b0, b1, b2, b3 : u8;
+	var w0 @ &b0, w1 @ &b2 : u16;
+	var p0 @ &b0, p1 @ &b2 : *u8;
 
-	var // 4 words
-	w0 @ &a0, 
-	w1 @ &a2, 
-	w2 @ &a4, 
-	w3 @ &a6 : u16;
-
-	var // 4 pointers
-	ptr0 @ &a8, 
-	ptr1 @ &aA, 
-	ptr2 @ &aC, 
-	ptr3 @ &aE : *u8;
+	// save the state of registers while executing interrupts
+	var tmp_a, tmp_x, tmp_y : u8;
 }
 
 in oam {
@@ -56,43 +44,66 @@ in chr {
 	const = embed "res/fg-tiles.chr";
 }
 
-namespace math {
-	/*
-	const sine_pos : [u8] = [
-		0x11,0x12,0x13,0x14, 0x16,0x18,0x1a,0x1c, 0x1f,0x22,0x25,0x28, 0x2c,0x30,0x34,0x38,
-		0x3c,0x40,0x44,0x48, 0x4b,0x4e,0x51,0x54, 0x56,0x58,0x5a,0x5c, 0x5d,0x5e,0x5f,0x60,
-		0x60,0x5f,0x5e,0x5d, 0x5c,0x5a,0x58,0x56, 0x54,0x51,0x4e,0x4b, 0x48,0x44,0x40,0x3c,
-		0x38,0x34,0x30,0x2c, 0x28,0x25,0x22,0x1f, 0x1c,0x1a,0x18,0x16, 0x14,0x13,0x12,0x11,
-	]; // */
-	in program {
-		const sine : [i8] = [
-			-39, -38, -37, -36, 
-			-34, -32, -30, -28, 
-			-25, -22, -19, -16, 
-			-12,  -8,  -4,   0, 
+// specify that something should be OFF
+let OFF = 0;
 
-			4,   8,  12,  16, 
-			19,  22,  25,  28, 
-			30,  32,  34,  36, 
-			37,  38,  39,  40, 
-
-			40,  39,  38,  37, 
-			36,  34,  32,  30, 
-			28,  25,  22,  19, 
-			16,  12,   8,   4, 
-			
-			0,  -4,  -8, -12, 
-			-16, -19, -22, -25, 
-			-28, -30, -32, -34, 
-			-36, -37, -38, -39
-		];
-	}
+// push the registers on the stack to switch context
+inline func push_registers () {
+    push(a);
+    push(a = x);
+    push(a = y);
 }
 
-namespace screen {
-	let PIXEL_WIDTH  = 256;
-	let PIXEL_HEIGHT = 240;
+// pop the registers from the stack to resume previous execution
+inline func pop_registers () {
+    y = a = pop();
+    x = a = pop();
+    a = pop();
+}
 
-	let WIDTH  = PIXEL_WIDTH  / 8;
-	let HEIGHT = PIXEL_HEIGHT / 8;
+// save registers in memory to execute interrupt
+inline func save_registers () {
+	tmp_a = a;
+	tmp_x = x;
+	tmp_y = y;
+}
+
+// load registers from memory after executing interrupt
+inline func load_registers () {
+	a = tmp_a;
+	x = tmp_x;
+	y = tmp_y;
+}
+
+
+// assign a 16bit word in the appropriate location
+inline func assign (let target : *u8, let value : u16) {
+    <:target = a = <:value;
+    >:target = a = >:value;
+}
+
+
+namespace math {
+	in program {
+		// define a sine over a period of 2PI
+		// could be to a period of PI/2 actually
+		const sine : [i8] = [
+			0, 3, 6, 9, 12, 16, 19, 22, 25, 28, 31, 34, 37, 40, 43, 46, 
+			49, 51, 54, 57, 60, 63, 65, 68, 71, 73, 76, 78, 81, 83, 85, 88, 
+			90, 92, 94, 96, 98, 100, 102, 104, 106, 107, 109, 111, 112, 113, 115, 116, 
+			117, 118, 120, 121, 122, 122, 123, 124, 125, 125, 126, 126, 126, 127, 127, 127, 
+			127, 127, 127, 127, 126, 126, 126, 125, 125, 124, 123, 122, 122, 121, 120, 118, 
+			117, 116, 115, 113, 112, 111, 109, 107, 106, 104, 102, 100, 98, 96, 94, 92, 
+			90, 88, 85, 83, 81, 78, 76, 73, 71, 68, 65, 63, 60, 57, 54, 51, 
+			49, 46, 43, 40, 37, 34, 31, 28, 25, 22, 19, 16, 12, 9, 6, 3, 
+			0, -3, -6, -9, -12, -16, -19, -22, -25, -28, -31, -34, -37, -40, -43, -46, 
+			-49, -51, -54, -57, -60, -63, -65, -68, -71, -73, -76, -78, -81, -83, -85, -88, 
+			-90, -92, -94, -96, -98, -100, -102, -104, -106, -107, -109, -111, -112, -113, -115, -116, 
+			-117, -118, -120, -121, -122, -122, -123, -124, -125, -125, -126, -126, -126, -127, -127, -127, 
+			-127, -127, -127, -127, -126, -126, -126, -125, -125, -124, -123, -122, -122, -121, -120, -118, 
+			-117, -116, -115, -113, -112, -111, -109, -107, -106, -104, -102, -100, -98, -96, -94, -92, 
+			-90, -88, -85, -83, -81, -78, -76, -73, -71, -68, -65, -63, -60, -57, -54, -51, 
+			-49, -46, -43, -40, -37, -34, -31, -28, -25, -22, -19, -16, -12, -9, -6, -3
+		];
+	}
 }

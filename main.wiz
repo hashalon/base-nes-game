@@ -9,61 +9,42 @@ import "nametable";
 import "palette";
 import "video";
 import "joypad";
-import "music";
 
-import "debug";
 
 in program {
+
 	// start of the program
-	func main () {
-
-		// disable decimal arithmetic and interrupts
-		decimal     = false;
-		nointerrupt = true;
-
-		s = x = 0xff; // init stack
-
-		// disable rendering
-		nes.ppu.control = x = 0;
-		nes.ppu.mask    = x;
+	#[fallthrough] func main () {
+		// init the NES
+		decimal     = false;       // decimal not supported
+		nointerrupt = true;        // disable interrupts
+		s = x = 0xff;              // init stack
+		nes.ppu.control = a = OFF; // disable rendering
+		nes.ppu.mask    = a;
 
 		// disable DMC interrupts
 		nes.apu.frame_counter = a = nes.apu.FRAME_COUNTER_IRQ_DISABLE;
+		video.wait_ppu_init();
 
-		// wait for PPU (2 vertical blanks)
-		do {
-			do {} while !nes.ppu.status$7;
-			++x;
-		} while x != 2;
-
-		nametable.init();
-		palette  .init();
-		//music    .init();
-
-		/* Initialize screen here */
-		// <code>
-		debug.test_print();
-		// </code>
-		
-		// reset scrolling
-		a = nes.ppu.status;
-		nes.ppu.scroll = x = 0;
-		nes.ppu.scroll = x;
+		video.set_ppu_address(nes.ppu.ADDRESS_NAMETABLE_0);
+		nametable.fill(a = 0x04, a = 0b00011011);
+		palette.init();
+		video.reset_scroll();
 
 		// re-enable rendering
-		nes.ppu.control = y = 0
+		nes.ppu.control = a = 0
 		| nes.ppu.CONTROL_NMI
-		| nes.ppu.CONTROL_OBJ_8x16;
-		nes.ppu.mask = y = 0
+		| nes.ppu.CONTROL_OBJ_8x16
+		| nes.ppu.CONTROL_BG_PATTERN_0;
+		nes.ppu.mask = a = 0
 		| nes.ppu.MASK_LEFTMOST_BG
-		| nes.ppu.MASK_RENDER_BG
 		| nes.ppu.MASK_LEFTMOST_OBJ
+		| nes.ppu.MASK_RENDER_BG
 		| nes.ppu.MASK_RENDER_OBJ;
-
 		nointerrupt = false; // re-enable interrupts
 
 		// infinite loop
-		while true {
+		do {
 
 			/* put code here */
 			// <code>
@@ -73,7 +54,7 @@ in program {
 
 			// wait for draw request
 			video.wait_request();
-		}
+		} while true;
 	}
 
     const @ 0xFFFA = [video.vblank, main, video.scanline];

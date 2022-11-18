@@ -13,7 +13,10 @@ namespace video {
         var draw_request : u8;
 
         // count the number of line crossed in the scanline interrupt
-        var irq_call_count : u8;
+        var irq_counter : u8;
+
+        // current scroll
+        var scroll : u8;
     }
 
     // bit map for drawing
@@ -23,74 +26,85 @@ namespace video {
     in program {
 
         #[nmi] func vblank () {
-            push(a);
-            push(a = x);
-            push(a = y);
-            
-            // reset scroll
-            a = nes.ppu.status;
-            nes.ppu.scroll = a = 0; // reset scroll X
-            nes.ppu.scroll = a;     // reset scroll Y
-            irq_call_count = a;     // reset counter
-            setup_irq(x = 64);
-
-            /* put code here */
-
-            if {
-                a = draw_request & REQUEST_UPDATE_SPRITES;
-            } && !zero {
-                nes.ppu.oam.address = a = <:&oam_buffer;
-                nes.ppu.oam.dma     = a = >:&oam_buffer;
-            }
-            draw_request = a = 0;
-            
-            /* put code here */		
-            
-            y = a = pop();
-            x = a = pop();
-            a = pop();
+            save_registers();
+            x = scroll;
+            scroll = ++x;
+            set_scroll(x, 0);
+            submit_oam_to_ppu();
+            irq_counter = a = 0;
+            load_registers();
         }
 
         #[irq] func scanline () {
-            push(a);
-            push(a = x);
-            push(a = y);
-            
-            //* <code>
-            // acknowledge IRQ
-            //nes.mmc3.irq.disable = a;
-            x = irq_call_count;
-            irq_call_count = ++x;
-            if x < 16 {
-                a = nes.ppu.status;
-                nes.ppu.scroll = x; // reset scroll X
-                nes.ppu.scroll = a = 0; // reset scroll Y
-                setup_irq(a = 8);
-
-            } else {nes.mmc3.irq.disable = a;}
-            // </code> */
-            
-            y = a = pop();
-            x = a = pop();
-            a = pop();
+            save_registers();
+            increment_irq();
+            load_registers();
         }
+    }
 
-        // setup IRQ call for per-scanline scrolling
-        func setup_irq (wait_scanlines : u8 in a) {
-            nes.mmc3.irq.disable = a; // acknowledge pending interrupts
-            nes.mmc3.irq.latch   = wait_scanlines;
-            nes.mmc3.irq.reload  = wait_scanlines;
-            nes.mmc3.irq.disable = a; // latch in the countdown value
-            nes.mmc3.irq.enable  = a; // enable the IRQ counter
+
+    // wait for PPU (2 vertical blanks)
+    inline func wait_ppu_init () {
+        for x in 0 .. 1 {
+            do {} while !nes.ppu.status$7; // detect vertical blank
         }
+    }
 
-        // wait for draw request
-        inline func wait_request () {
-            draw_request = a = 0
-                | REQUEST_WAIT_FRAME 
-                | REQUEST_UPDATE_SPRITES;
+    // wait for draw request
+    inline func wait_request () {
+        draw_request = a = 0
+            | REQUEST_WAIT_FRAME 
+            | REQUEST_UPDATE_SPRITES;
+        do {a = draw_request;} while !zero;
+    }
 
-            do {a = draw_request;} while !zero;
+    // write the appropriate address in the PPU
+    inline func set_ppu_address (let address : u16) {
+        a = nes.ppu.status;
+        nes.ppu.address = a = >:address;
+        nes.ppu.address = a = <:address;
+    }
+
+    inline func set_ppu_var_address (high : u8 in x, low : u8 in y) {
+        a = nes.ppu.status;
+        nes.ppu.address = x;
+        nes.ppu.address = y;
+    }
+
+    // set the PPU scroll
+    inline func reset_scroll () {
+        a = nes.ppu.status; // reset the PPU high/low latch
+        nes.ppu.scroll = a = 0;
+        nes.ppu.scroll = a;
+    }
+
+    inline func set_scroll (sx : u8 in x, sy : u8 in y) {
+        a = nes.ppu.status; // reset the PPU high/low latch
+        nes.ppu.scroll = sx;
+        nes.ppu.scroll = sy;
+    }
+
+    // push OAM buffer data to the ppu
+    inline func submit_oam_to_ppu () {
+        if {a = draw_request & REQUEST_UPDATE_SPRITES;} && !zero {
+            nes.ppu.oam.address = a = <:&oam_buffer;
+            nes.ppu.oam.dma     = a = >:&oam_buffer;
         }
+        draw_request = a = OFF;
+    }
+
+    // increment the IRQ
+    inline func increment_irq () {
+        x = irq_counter;
+        irq_counter = ++x;
+    }
+
+    // setup IRQ call for per-scanline scrolling
+    inline func setup_irq (let wait_scanlines : u8) {
+        nes.mmc3.irq.disable = a = OFF; // acknowledge pending interrupts
+        nes.mmc3.irq.latch   = a = wait_scanlines;
+        nes.mmc3.irq.reload  = a;
+        nes.mmc3.irq.disable = a = OFF; // latch in the countdown value
+        nes.mmc3.irq.enable  = a;       // enable the IRQ counter
     }
 }

@@ -13,13 +13,6 @@ namespace text {
     let PADDING  = 4; // padding on each side
     let NB_LINES = 4; // number of lines of text
 
-    /* STATIC */
-    // high byte of nametable addresses
-    let TABLE_0 = 0x20;
-    let TABLE_1 = 0x24;
-    let TABLE_2 = 0x28;
-    let TABLE_3 = 0x2c;
-
     /* COMPUTE */
     let TXT_LEN = screen.WIDTH  - PADDING  * 2;
     let TXT_BEG = screen.HEIGHT - NB_LINES - 2;

@@ -4,23 +4,21 @@
 
 import "nes";
 import "define";
+import "video";
 
 namespace nametable {
     in zeropage {
-
+        var data_ptr  : *u8;
+        var data_size :  u8;
     }
-    in program {
-        
-        // initialize the nametable
-        func init () {
-            a = nes.ppu.status; // reset the PPU high/low latch
-            // setup the PPU to copy to the nametable
-            nes.ppu.address = a = >:nes.ppu.ADDRESS_NAMETABLE_DATA;
-            nes.ppu.address = a = <:nes.ppu.ADDRESS_NAMETABLE_DATA;
 
-            // clear the nametable
-            x = >:nes.ppu.NAMETABLE_SIZE * 2;
-            a = 4;
+    in program {
+
+        // fill a whole nametable with a given tile
+        func fill (tile : u8 in b0, pal : u8 in b1) {
+            // 1st part tilemap
+            a = tile;
+            x = >:nes.ppu.NAMETABLE_SIZE_TILE_MAP;
             do {
                 y = 0;
                 do {
@@ -29,6 +27,37 @@ namespace nametable {
                 } while !zero;
                 --x;
             } while !zero;
+            // 2nd part tilemap
+            x = <:nes.ppu.NAMETABLE_SIZE_TILE_MAP;
+            do {
+                nes.ppu.data = a;
+                --x;
+            } while !zero;
+            // attribute map
+            a = pal;
+            x = nes.ppu.NAMETABLE_SIZE_ATTRIBUTE_MAP;
+            do {
+                nes.ppu.data = a;
+                --x;
+            } while !zero;
+        }
+
+        // set tiles to provided value
+        func set_data (val : u8 in x, len : u8 in data_size) {
+            y = 0;
+            do {
+                nes.ppu.data = val;
+                ++y;
+            } while y < len;
+        }
+
+        // set tiles to values specified in the array
+        func set_data_array (ptr : *u8 in data_ptr, len : u8 in data_size) {
+            y = 0;
+            do {
+                nes.ppu.data = a = ptr[y];
+                ++y;
+            } while y < len;
         }
     }
 }
