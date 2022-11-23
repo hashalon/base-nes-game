@@ -15,6 +15,8 @@ namespace joypad {
 
 	in zeropage {
 		var pause : u8;
+
+		var ptr_player, ptr_input : *u8;
 	}
 
 	// store player inputs in RAM because it takes more space
@@ -26,35 +28,42 @@ namespace joypad {
 	in program {
 
 		// read the players' inputs
-		func read () {
+		func read_both () {
 			// latch the controllers
 			nes.joy.output = a = 1;
 			nes.joy.output = a = 0;
 
-			// store that player was pressing jump button on previous frame
-			player1.past_jump = a = player1.jump;
+			// read both players inputs
+			let PLAYER = [player1, player2];
+			let INPUT  = [nes.joy.input1 & 0b1, nes.joy.input2 & 0b1];
+			inline for let i in 0..1 {
 
-			// read controller inputs one by one
-			player1.jump   = a = nes.joy.input1 & 0b1;
-			player1.grab   = a = nes.joy.input1 & 0b1;
-			player1.select = a = nes.joy.input1 & 0b1;
+				// store that player was pressing jump button on previous frame
+				PLAYER[i].past_jump = a = PLAYER[i].jump;
 
-			// either controllers can bring up the same pause menu
-			x = pause;
-			pause = a = nes.joy.input1 & 0b1;
+				// read controller inputs one by one
+				PLAYER[i].jump   = a = INPUT[i];
+				PLAYER[i].grab   = a = INPUT[i];
+				PLAYER[i].select = a = INPUT[i];
 
-			// read directional inputs
-			y = 0;
-			if {a = nes.joy.input1 & 0b1;} && !zero {++y;}
-			if {a = nes.joy.input1 & 0b1;} && !zero {--y;}
-			player1.move_y = y as i8;
-			
-			// read directional inputs
-			x = 0;
-			if {a = nes.joy.input1 & 0b1;} && !zero {++x;}
-			if {a = nes.joy.input1 & 0b1;} && !zero {--x;}
-			player1.move_x = x as i8;
+				// either controllers can bring up the same pause menu
+				x = pause;
+				pause = a = INPUT[i];
+
+				// read directional inputs
+				y = 0;
+				if {a = INPUT[i];} && !zero {++y;}
+				if {a = INPUT[i];} && !zero {--y;}
+				PLAYER[i].move_y = y as i8;
+				
+				// read directional inputs
+				x = 0;
+				if {a = INPUT[i];} && !zero {++x;}
+				if {a = INPUT[i];} && !zero {--x;}
+				PLAYER[i].move_x = x as i8;
+			}
 		}
+
 	}
 
 }
