@@ -48,7 +48,7 @@ in program {
 
 			/* put code here */
 			// <code>
-			read_joypads();
+			joypad.read();
 			//music.next_frame();
 			// </code>
 
