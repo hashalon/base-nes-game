@@ -48,7 +48,11 @@ in program {
 
 			/* put code here */
 			// <code>
-			joypad.read();
+			joypad.prepare_input();
+			joypad.pool_both();
+			x = joypad.to_horizontal(a = joypad.joy1);
+			y = joypad.to_vertical(b0);
+			joypad.update_input();
 			//music.next_frame();
 			// </code>
 

@@ -4,66 +4,70 @@ import "define";
 
 namespace joypad {
 
-	struct Player {
-		past_jump : u8, // previous state of button A
-		jump      : u8, // button A
-		grab      : u8, // button B
-		select    : u8, // button Select
-		move_y    : i8, // up & down
-		move_x    : i8, // left & right
-	}
-
 	in zeropage {
-		var pause : u8;
-
-		var ptr_player, ptr_input : *u8;
+		var joy1, joy2 : u8;
 	}
 
-	// store player inputs in RAM because it takes more space
-	// and it is more convenient to use
-	in RAM {
-		var player1, player2 : Player;
+	inline func pool_both () {
+		// latch the controllers
+		nes.joy.output = a = 1;
+		nes.joy.output = a = 0;
+
+		joy1 = a = pool(0);
+		joy2 = a = pool(1);
 	}
 
 	in program {
 
-		// read the players' inputs
-		func read_both () {
-			// latch the controllers
-			nes.joy.output = a = 1;
-			nes.joy.output = a = 0;
+		// read a joypad
+		func pool (port : u8 in y) : u8 in a {
+			// no need to reset b0 because bits in 
+			// b0 will be completely erased anyway
 
-			// read both players inputs
-			let PLAYER = [player1, player2];
-			let INPUT  = [nes.joy.input1 & 0b1, nes.joy.input2 & 0b1];
-			inline for let i in 0..1 {
+			// count down to 0
+			for x in nes.joy.bit.COUNT .. 1 by -1 {
 
-				// store that player was pressing jump button on previous frame
-				PLAYER[i].past_jump = a = PLAYER[i].jump;
+				// LSR: push bit 0 of input into the carry
+				a = (&nes.joy.input1)[port] >>> 1;
 
-				// read controller inputs one by one
-				PLAYER[i].jump   = a = INPUT[i];
-				PLAYER[i].grab   = a = INPUT[i];
-				PLAYER[i].select = a = INPUT[i];
-
-				// either controllers can bring up the same pause menu
-				x = pause;
-				pause = a = INPUT[i];
-
-				// read directional inputs
-				y = 0;
-				if {a = INPUT[i];} && !zero {++y;}
-				if {a = INPUT[i];} && !zero {--y;}
-				PLAYER[i].move_y = y as i8;
-				
-				// read directional inputs
-				x = 0;
-				if {a = INPUT[i];} && !zero {++x;}
-				if {a = INPUT[i];} && !zero {--x;}
-				PLAYER[i].move_x = x as i8;
+				// ROR: pull carry into bit 7 of target
+				b0 >>>>#= 1; // ROR = ">>>>#"
 			}
+			return b0;
 		}
 
+		// get horizontal direction for a joypad
+		func to_horizontal (joy : u8 in b0) : u8 in x {
+			x = 0;
+			// BIT '$' only support bits 7 and 6
+			if joy$nes.joy.bit.LEFT  {--x;}
+			if joy$nes.joy.bit.RIGHT {++x;}
+			return x;
+		}
+
+		// get vertical direction for a joypad
+		func to_vertical (joy : u8 in b0) : u8 in y {
+			y = 0;
+			if {a = joy & nes.joy.mask.UP  ;} && !zero {--y;}
+			if {a = joy & nes.joy.mask.DOWN;} && !zero {++y;}
+			return y;
+		}
+	}
+	
+	// if we need to compare the state of button overtime
+	in RAM {
+		var prev1, prev2 : u8;
+		var just_pressed, just_released : u8;
+	}
+
+	inline func prepare_input () {
+		prev1 = a = joy1;
+		prev2 = a = joy2;
+	}
+
+	inline func update_input () {
+		just_pressed  = a = ~prev1 & joy1;
+		just_released = a = ~joy1  & prev1;
 	}
 
 }
