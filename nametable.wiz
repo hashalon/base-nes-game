@@ -18,37 +18,27 @@ namespace nametable {
         func fill (tile : u8 in b0, pal : u8 in b1) {
             // 1st part tilemap
             a = tile;
-            x = >:nes.ppu.NAMETABLE_SIZE_TILE_MAP;
-            do {
-                y = 0;
-                do {
+            for x in >:nes.ppu.NAMETABLE_SIZE_TILE_MAP .. 1 by -1 {
+                for y in 0 .. 0xff {
                     nes.ppu.data = a;
-                    ++y;
-                } while !zero;
-                --x;
-            } while !zero;
+                }
+            }
             // 2nd part tilemap
-            x = <:nes.ppu.NAMETABLE_SIZE_TILE_MAP;
-            do {
+            for x in <:nes.ppu.NAMETABLE_SIZE_TILE_MAP .. 1 by -1 {
                 nes.ppu.data = a;
-                --x;
-            } while !zero;
+            }
             // attribute map
             a = pal;
-            x = nes.ppu.NAMETABLE_SIZE_ATTRIBUTE_MAP;
-            do {
+            for x in nes.ppu.NAMETABLE_SIZE_ATTRIBUTE_MAP .. 1 by -1 {
                 nes.ppu.data = a;
-                --x;
-            } while !zero;
+            }
         }
 
         // set tiles to provided value
-        func set_data (val : u8 in x, len : u8 in data_size) {
-            y = 0;
-            do {
+        func set_data (val : u8 in y, len : u8 in data_size) {
+            for x in len .. 1 by -1 {
                 nes.ppu.data = val;
-                ++y;
-            } while y < len;
+            }
         }
 
         // set tiles to values specified in the array
