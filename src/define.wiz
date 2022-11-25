@@ -10,7 +10,7 @@ config {
 	cart_type       = "mmc3", // mapper for per-scanline scrolling
 }
 
-import "nes";
+import "src/nes";
 
 /**
  * vardata           : uninitialized RAM

@@ -1,6 +1,6 @@
 
-import "nes";
-import "define";
+import "src/nes";
+import "src/define";
 
 namespace joypad {
 

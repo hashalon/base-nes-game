@@ -2,8 +2,8 @@
  * Handle drawing to the screen
  */
 
-import "nes";
-import "define";
+import "src/nes";
+import "src/define";
 
 namespace video {
 

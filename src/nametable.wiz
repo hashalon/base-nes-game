@@ -2,9 +2,9 @@
  * Handle nametables
  */
 
-import "nes";
-import "define";
-import "video";
+import "src/nes";
+import "src/define";
+import "src/video";
 
 namespace nametable {
     in zeropage {
@@ -36,9 +36,10 @@ namespace nametable {
 
         // set tiles to provided value
         func set_data (val : u8 in y, len : u8 in data_size) {
-            for x in len .. 1 by -1 {
+            x = len;
+            do {
                 nes.ppu.data = val;
-            }
+            } while !zero;
         }
 
         // set tiles to values specified in the array
