@@ -37,7 +37,7 @@ namespace video {
 
         #[irq] func scanline () {
             save_registers();
-            increment_irq();
+            ++irq_counter;
             load_registers();
         }
     }
@@ -91,12 +91,6 @@ namespace video {
             nes.ppu.oam.dma     = a = >:&oam_buffer;
         }
         draw_request = a = OFF;
-    }
-
-    // increment the IRQ
-    inline func increment_irq () {
-        x = irq_counter;
-        irq_counter = ++x;
     }
 
     // setup IRQ call for per-scanline scrolling
