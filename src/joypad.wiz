@@ -39,7 +39,6 @@ namespace joypad {
 		// get horizontal direction for a joypad
 		func to_horizontal (joy : u8 in b0) : u8 in x {
 			x = 0;
-			// BIT '$' only support bits 7 and 6
 			if joy$nes.joy.bit.LEFT  {--x;}
 			if joy$nes.joy.bit.RIGHT {++x;}
 			return x;
@@ -48,6 +47,8 @@ namespace joypad {
 		// get vertical direction for a joypad
 		func to_vertical (joy : u8 in b0) : u8 in y {
 			y = 0;
+			// BIT '$' only support bits 7 and 6
+			// in that case, we have to use regular bitmasking
 			if {a = joy & nes.joy.mask.UP  ;} && !zero {--y;}
 			if {a = joy & nes.joy.mask.DOWN;} && !zero {++y;}
 			return y;
