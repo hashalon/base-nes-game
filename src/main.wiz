@@ -27,8 +27,6 @@ in program {
 
 		video.set_ppu_address(nes.ppu.ADDRESS_NAMETABLE_0);
 		graphics.fill_nametable(a = 0x04, a = 0b00011011);
-		graphics.reset();
-		//palette.init();
 		video.reset_scroll();
 
 		// re-enable rendering

@@ -27,9 +27,9 @@ bank program   @ 0x8000 : [prgdata; 0x8000]; // for instructions & constants
 bank chr                : [chrdata; 0x2000]; // for graphics
 
 in zeropage {
-	var b0, b1, b2, b3 : u8;
-	var w0 @ &b0, w1 @ &b2 : u16;
-	var p0 @ &b0, p1 @ &b2 : *u8;
+	var b0, b1, b2, b3, b4, b5, b6, b7 :  u8;
+	var w0@&b0, w1@&b2, w2@&b4, w3@&b6 :  u16;
+	var p0@&b0, p1@&b2, p2@&b4, p3@&b6 : *u8;
 
 	// save the state of registers while executing interrupts
 	var tmp_a, tmp_x, tmp_y : u8;

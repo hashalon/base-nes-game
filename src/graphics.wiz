@@ -9,14 +9,10 @@ import "src/video";
 namespace graphics {
     
     in zeropage {
-        var spr_counter, pos_x, pos_y : u8;
+
     }
 
     in program {
-
-        inline func reset () {
-            spr_counter = a = 0;
-        }
 
         //const TEST : [u8] = [0x01, 0x16, 0x30];
         //func load_palette () {
@@ -45,20 +41,23 @@ namespace graphics {
         }
 
         // draw a metasprite on the screen
+        // set x to zero before calling this function the first time
+        // then it can be called multiple consecutive times
         func draw_metasprite (
-            def  : *u8 in p0, 
-            size :  u8 in b2, 
-            px   :  u8 in pos_x, 
-            py   :  u8 in pos_y
+            def  :*u8 in p0, 
+            size : u8 in b2, 
+            posx : u8 in b3, 
+            posy : u8 in b4
         ) {
+            // use 'x' to keep track of the sprite to edit
+            // x = 0; // only before the first call
             y = 0;
             do {
-                oam_buffer[x++] = a = def[y++] + py;
+                oam_buffer[x++] = a = def[y++] + posy;
                 oam_buffer[x++] = a = def[y++];
                 oam_buffer[x++] = a = def[y++];
-                oam_buffer[x++] = a = def[y++] + px;
+                oam_buffer[x++] = a = def[y++] + posx;
             } while y < size;
-            spr_counter = x;
         }
     }
 }
