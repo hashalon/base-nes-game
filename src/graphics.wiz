@@ -1,0 +1,64 @@
+/**
+ * Handle palette
+ */
+
+import "src/nes";
+import "src/define";
+import "src/video";
+
+namespace graphics {
+    
+    in zeropage {
+        var spr_counter, pos_x, pos_y : u8;
+    }
+
+    in program {
+
+        inline func reset () {
+            spr_counter = a = 0;
+        }
+
+        //const TEST : [u8] = [0x01, 0x16, 0x30];
+        //func load_palette () {
+        //    video.set_ppu_address(nes.ppu.ADDRESS_PALETTE_DATA + 1);
+        //    video.write_array_in_ppu(TEST, 3);
+        //}
+
+                // fill a whole nametable with a given tile
+        func fill_nametable (tile : u8 in b0, pal : u8 in b1) {
+            // 1st part tilemap
+            a = tile;
+            for x in >:nes.ppu.NAMETABLE_SIZE_TILE_MAP .. 1 by -1 {
+                for y in 0 .. 0xff {
+                    nes.ppu.data = a;
+                }
+            }
+            // 2nd part tilemap
+            for x in <:nes.ppu.NAMETABLE_SIZE_TILE_MAP .. 1 by -1 {
+                nes.ppu.data = a;
+            }
+            // attribute map
+            a = pal;
+            for x in nes.ppu.NAMETABLE_SIZE_ATTRIBUTE_MAP .. 1 by -1 {
+                nes.ppu.data = a;
+            }
+        }
+
+        // draw a metasprite on the screen
+        func draw_metasprite (
+            def  : *u8 in p0, 
+            size :  u8 in b2, 
+            px   :  u8 in pos_x, 
+            py   :  u8 in pos_y
+        ) {
+            y = 0;
+            do {
+                oam_buffer[x++] = a = def[y++] + py;
+                oam_buffer[x++] = a = def[y++];
+                oam_buffer[x++] = a = def[y++];
+                oam_buffer[x++] = a = def[y++] + px;
+            } while y < size;
+            spr_counter = x;
+        }
+    }
+}

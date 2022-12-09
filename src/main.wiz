@@ -5,9 +5,9 @@
 
 import "src/nes";
 import "src/define";
-import "src/nametable";
 import "src/video";
 import "src/joypad";
+import "src/graphics";
 
 
 in program {
@@ -26,7 +26,8 @@ in program {
 		video.wait_ppu_init();
 
 		video.set_ppu_address(nes.ppu.ADDRESS_NAMETABLE_0);
-		nametable.fill(a = 0x04, a = 0b00011011);
+		graphics.fill_nametable(a = 0x04, a = 0b00011011);
+		graphics.reset();
 		//palette.init();
 		video.reset_scroll();
 
