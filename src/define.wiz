@@ -22,14 +22,21 @@ import "src/nes";
 bank zeropage  @ 0x0000 : [vardata; 0x0100]; // for variables
 bank stack     @ 0x0100 : [vardata; 0x0100]; // for stack
 bank oam       @ 0x0200 : [vardata; 0x0100]; // for sprites
-bank RAM       @ 0x0300 : [vardata; 0x0500]; // ...
+bank ram       @ 0x0300 : [vardata; 0x0500]; // ...
 bank program   @ 0x8000 : [prgdata; 0x8000]; // for instructions & constants
 bank chr                : [chrdata; 0x2000]; // for graphics
 
 in zeropage {
-	var b0, b1, b2, b3 : u8;
-	var w0 @ &b0, w1 @ &b2 : u16;
-	var p0 @ &b0, p1 @ &b2 : *u8;
+
+	// 16 Bytes of temporary variables to work with
+	var b0, b1, b2, b3, b4, b5, b6, b7 : u8;
+	var b8, b9, bA, bB, bC, bD, bE, bF : u8;
+
+	// map the 16 Bytes with words and pointers of 16 bits
+	var w0 @ &b0, w2 @ &b2, w4 @ &b4, w6 @ &b6 : u16;
+	var w8 @ &b8, wA @ &bA, wC @ &bC, wE @ &bE : u16;
+	var p0 @ &b0, p2 @ &b2, p4 @ &b4, p6 @ &b6 : *u8;
+	var p8 @ &b8, pA @ &bA, pC @ &bC, pE @ &bE : *u8;
 
 	// save the state of registers while executing interrupts
 	var tmp_a, tmp_x, tmp_y : u8;
@@ -37,6 +44,11 @@ in zeropage {
 
 in oam {
 	var oam_buffer : [u8; 0x100];
+}
+
+in program {
+	const metatiles @ 0xF000 = embed "res/metatiles.bin";
+	const metatiles_pal      = embed "res/metatiles_palette.bin";
 }
 
 in chr {
@@ -82,28 +94,3 @@ inline func assign (let target : *u8, let value : u16) {
     >:target = a = >:value;
 }
 
-
-namespace math {
-	in program {
-		// define a sine over a period of 2PI
-		// could be to a period of PI/2 actually
-		const sine : [i8] = [
-			0, 3, 6, 9, 12, 16, 19, 22, 25, 28, 31, 34, 37, 40, 43, 46, 
-			49, 51, 54, 57, 60, 63, 65, 68, 71, 73, 76, 78, 81, 83, 85, 88, 
-			90, 92, 94, 96, 98, 100, 102, 104, 106, 107, 109, 111, 112, 113, 115, 116, 
-			117, 118, 120, 121, 122, 122, 123, 124, 125, 125, 126, 126, 126, 127, 127, 127, 
-			127, 127, 127, 127, 126, 126, 126, 125, 125, 124, 123, 122, 122, 121, 120, 118, 
-			117, 116, 115, 113, 112, 111, 109, 107, 106, 104, 102, 100, 98, 96, 94, 92, 
-			90, 88, 85, 83, 81, 78, 76, 73, 71, 68, 65, 63, 60, 57, 54, 51, 
-			49, 46, 43, 40, 37, 34, 31, 28, 25, 22, 19, 16, 12, 9, 6, 3, 
-			0, -3, -6, -9, -12, -16, -19, -22, -25, -28, -31, -34, -37, -40, -43, -46, 
-			-49, -51, -54, -57, -60, -63, -65, -68, -71, -73, -76, -78, -81, -83, -85, -88, 
-			-90, -92, -94, -96, -98, -100, -102, -104, -106, -107, -109, -111, -112, -113, -115, -116, 
-			-117, -118, -120, -121, -122, -122, -123, -124, -125, -125, -126, -126, -126, -127, -127, -127, 
-			-127, -127, -127, -127, -126, -126, -126, -125, -125, -124, -123, -122, -122, -121, -120, -118, 
-			-117, -116, -115, -113, -112, -111, -109, -107, -106, -104, -102, -100, -98, -96, -94, -92, 
-			-90, -88, -85, -83, -81, -78, -76, -73, -71, -68, -65, -63, -60, -57, -54, -51, 
-			-49, -46, -43, -40, -37, -34, -31, -28, -25, -22, -19, -16, -12, -9, -6, -3
-		];
-	}
-}

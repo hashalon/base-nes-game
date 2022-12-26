@@ -5,9 +5,9 @@
 
 import "src/nes";
 import "src/define";
-import "src/nametable";
 import "src/video";
 import "src/joypad";
+import "src/tilemap";
 
 
 in program {
@@ -26,7 +26,7 @@ in program {
 		video.wait_ppu_init();
 
 		video.set_ppu_address(nes.ppu.ADDRESS_NAMETABLE_0);
-		nametable.fill(a = 0x04, a = 0b00011011);
+		tilemap.fill_nametable(a = 0x04, a = 0b00011011);
 		//palette.init();
 		video.reset_scroll();
 
@@ -44,16 +44,16 @@ in program {
 
 		// infinite loop
 		do {
+			joypad.update();
 
-			/* put code here */
+			/* put code here
 			// <code>
-			joypad.prepare_input();
 			joypad.pool_both();
 			x = joypad.to_horizontal(a = joypad.joy1);
 			y = joypad.to_vertical(b0);
 			joypad.update_input();
 			//music.next_frame();
-			// </code>
+			// </code> */
 
 			// wait for draw request
 			video.wait_request();

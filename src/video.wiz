@@ -23,6 +23,7 @@ namespace video {
     let REQUEST_WAIT_FRAME     = 0b01;
     let REQUEST_UPDATE_SPRITES = 0b10;
 
+
     in program {
 
         #[nmi] func vblank () {
@@ -37,7 +38,7 @@ namespace video {
 
         #[irq] func scanline () {
             save_registers();
-            increment_irq();
+            ++irq_counter;
             load_registers();
         }
     }
@@ -65,10 +66,18 @@ namespace video {
         nes.ppu.address = a = <:address;
     }
 
-    inline func set_ppu_var_address (high : u8 in x, low : u8 in y) {
-        a = nes.ppu.status;
-        nes.ppu.address = x;
-        nes.ppu.address = y;
+    // fill the ppu with the given data
+    inline func set_ppu_data (val : u8 in y, len : u8 in x) {
+        do {
+            nes.ppu.data = val;
+            --len;
+        } while !zero;
+    }
+    inline func set_ppu_data_array (ptr : *u8 in p0, len : u8 in b2) {
+        y = 0;
+        do {
+            nes.ppu.data = a = ptr[y++];
+        } while y < len;
     }
 
     // set the PPU scroll
@@ -77,7 +86,6 @@ namespace video {
         nes.ppu.scroll = a = 0;
         nes.ppu.scroll = a;
     }
-
     inline func set_scroll (sx : u8 in x, sy : u8 in y) {
         a = nes.ppu.status; // reset the PPU high/low latch
         nes.ppu.scroll = sx;
@@ -93,12 +101,6 @@ namespace video {
         draw_request = a = OFF;
     }
 
-    // increment the IRQ
-    inline func increment_irq () {
-        x = irq_counter;
-        irq_counter = ++x;
-    }
-
     // setup IRQ call for per-scanline scrolling
     inline func setup_irq (let wait_scanlines : u8) {
         nes.mmc3.irq.disable = a = OFF; // acknowledge pending interrupts
@@ -107,4 +109,5 @@ namespace video {
         nes.mmc3.irq.disable = a = OFF; // latch in the countdown value
         nes.mmc3.irq.enable  = a;       // enable the IRQ counter
     }
+
 }

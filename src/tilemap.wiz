@@ -1,0 +1,104 @@
+import "src/nes";
+import "src/define";
+import "src/video";
+
+namespace tilemap {
+
+    in zeropage {}
+
+    in ram {}
+
+    in program {
+
+        /*
+            We define metatiles as group of 4 * 4 tiles + 1 attribute byte
+            Thus each nametable is a grid of 8 * 8 metatiles.
+            One full screen can be defined by 64 bytes = 0x40.
+            To optimize drawing, we draw a row of metatiles at once.
+        */
+
+        // define the starting point of each metatables
+        let METATABLE_0 = 0x00;
+        let METATABLE_1 = 0x40;
+
+        let METATILE_WIDTH  = 4;
+        let METATILE_HEIGHT = 4;
+        let TABLE_MASK = 0b11111;
+
+
+        // fill a whole nametable with a given tile
+        func fill_nametable (tile : u8 in b0, pal : u8 in b1) {
+            // 1st part tilemap
+            a = tile;
+            for x in >:nes.ppu.NAMETABLE_SIZE_TILE_MAP .. 1 by -1 {
+                for y in 0 .. 0xff {
+                    nes.ppu.data = a;
+                }
+            }
+            // 2nd part tilemap
+            for x in <:nes.ppu.NAMETABLE_SIZE_TILE_MAP .. 1 by -1 {
+                nes.ppu.data = a;
+            }
+            // attribute map
+            a = pal;
+            for x in nes.ppu.NAMETABLE_SIZE_ATTRIBUTE_MAP .. 1 by -1 {
+                nes.ppu.data = a;
+            }
+        }
+
+
+        // draw a group of metatiles
+        func draw_metatiles (pos : u8 in bA, array : *u8 in p0, size : u8 in b2) {
+            
+            // address of the nametable to write to
+            var table_addr @ &p8 : *u8;
+            >:table_addr = a = (pos >>> 3) + >:nes.ppu.ADDRESS_NAMETABLE_DATA;
+            <:table_addr = a = (pos <<< 2) & TABLE_MASK;
+
+            // detect if we are writing on the second nametable
+            if {a = pos & METATABLE_1;} && !zero {
+                >:table_addr = a = >:table_addr + >:nes.ppu.NAMETABLE_SIZE;
+            }
+
+            // draw each row of the metatile array into the ppu
+            for x in 0 .. METATILE_HEIGHT - 1 {
+
+                // prepare the ppu address
+                a = nes.ppu.status;
+                nes.ppu.address = a = (x <<< 6) + >:table_addr;
+                nes.ppu.address = a =             <:table_addr;
+
+                // draw a row of the metatile array
+                draw_metatile_row(array, size, a = x <<< 2);
+            }
+
+            // write the attribute data afterward
+            // TODO...
+        }
+
+        // draw a single line of the metatile
+        func draw_metatile_row (array : *u8 in p0, size : u8 in b2, row : u8 in b3) {
+
+            // store the address of the metatile to write
+            var meta_addr @ &p4 : *u8;
+            var meta_indx @ &b6 :  u8;
+            var tmp       @ &b7 :  u8;
+
+            // for each metatile in the array
+            y = 0;
+            do {
+                // find the address of the data composing the metatile
+                meta_indx = a = array[y++];
+                >:meta_addr = a = (meta_indx >>> METATILE_WIDTH) + >:&metatiles;
+                <:meta_addr = a = (meta_indx <<< METATILE_WIDTH) + row;
+
+                // draw four tiles
+                tmp = y;
+                for y in 0 .. METATILE_WIDTH - 1 {
+                    nes.ppu.data = a = meta_addr[y];
+                }
+                y = tmp;
+            } while y < size;
+        }
+    }
+}

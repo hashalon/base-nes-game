@@ -8,21 +8,40 @@ namespace joypad {
 		var joy1, joy2 : u8;
 	}
 
-	inline func pool_both () {
-		// latch the controllers
+	in ram {
+		var press1, press2 : u8;
+	}
+
+	// pool the state of both joypads
+	inline func update () {
+
+		// store previous state
+		var prev1 @ &b1 : u8;
+		var prev2 @ &b2 : u8;
+		prev1 = a = joy1;
+		prev2 = a = joy2;
+
+		// pool each button input of each joypad
 		nes.joy.output = a = 1;
 		nes.joy.output = a = 0;
-
 		joy1 = a = pool(0);
 		joy2 = a = pool(1);
+
+		// deduce the button that have been just pressed
+		press1 = a = ~prev1 & joy1;
+		press2 = a = ~prev2 & joy2;
 	}
 
 	in program {
 
 		// read a joypad
 		func pool (port : u8 in y) : u8 in a {
-			// no need to reset b0 because bits in 
-			// b0 will be completely erased anyway
+
+			// store the result to return
+			var result @ &b0 : u8;
+
+			// no need to reset 'result' because its 
+			// bits will be completely erased anyway
 
 			// count down to 0
 			for x in nes.joy.bit.COUNT .. 1 by -1 {
@@ -31,9 +50,9 @@ namespace joypad {
 				a = (&nes.joy.input1)[port] >>> 1;
 
 				// ROR: pull carry into bit 7 of target
-				b0 >>>>#= 1; // ROR = ">>>>#"
+				result >>>>#= 1;
 			}
-			return b0;
+			return result;
 		}
 
 		// get horizontal direction for a joypad
@@ -52,22 +71,6 @@ namespace joypad {
 			if {a = joy & nes.joy.mask.DOWN;} && !zero {++y;}
 			return y;
 		}
-	}
-	
-	// if we need to compare the state of button overtime
-	in RAM {
-		var prev1, prev2 : u8;
-		var just_pressed, just_released : u8;
-	}
-
-	inline func prepare_input () {
-		prev1 = a = joy1;
-		prev2 = a = joy2;
-	}
-
-	inline func update_input () {
-		just_pressed  = a = ~prev1 & joy1;
-		just_released = a = ~joy1  & prev1;
 	}
 
 }

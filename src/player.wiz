@@ -1,0 +1,45 @@
+
+import "src/nes";
+import "src/define";
+import "src/video";
+import "src/joypad";
+
+namespace player {
+
+    let JUMP_TIMER = 5;
+    let JUMP_TYPE  = 0b10000000;
+
+	in ram {
+        var timer1, timer2 : u8;
+	}
+
+    inline func update () {
+
+        // update the first player
+        if {a = joypad.press1 & nes.joy.mask.A;} && !zero {
+            // player is on the ground -> jump
+            // player just left the ground -> jump
+            // player is in the air -> set the timer, he might touch the ground on the comming ticks
+            
+            if {a = timer1} && !zero {
+
+            } else {
+                // 
+                timer1 = a = JUMP_TIMER;
+            }
+        }
+        if {a = joypad.press1 & nes.joy.mask.B;} && !zero {
+
+        }
+
+    }
+
+	in program {
+
+		// read a joypad
+		func pool () {
+
+		}
+	}
+
+}
