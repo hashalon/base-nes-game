@@ -23,7 +23,6 @@ namespace tilemap {
 
         let METATILE_WIDTH  = 4;
         let METATILE_HEIGHT = 4;
-        let TABLE_MASK = 0b11111;
 
 
         // fill a whole nametable with a given tile
@@ -48,36 +47,52 @@ namespace tilemap {
 
 
         // draw a group of metatiles
-        func draw_metatiles (pos : u8 in bA, array : *u8 in p0, size : u8 in b2) {
+        func draw_metatiles (pos : u8 in b8, array : *u8 in p0, size : u8 in b2) {
+
+            // compute the high address of the nametable
+            var table_high @ &b9 : u8;
+            table_high = a = (pos >>> 4) + >:nes.ppu.ADDRESS_NAMETABLE_DATA;
             
             // address of the nametable to write to
-            var table_addr @ &p8 : *u8;
-            >:table_addr = a = (pos >>> 3) + >:nes.ppu.ADDRESS_NAMETABLE_DATA;
-            <:table_addr = a = (pos <<< 2) & TABLE_MASK;
+            let TABLE_MASK = nes.ppu.NAMETABLE_WIDTH_TILE_MAP - 1;
 
-            // detect if we are writing on the second nametable
-            if {a = pos & METATABLE_1;} && !zero {
-                >:table_addr = a = >:table_addr + >:nes.ppu.NAMETABLE_SIZE;
-            }
+            var table_addr @ &pA : *u8;
+            >:table_addr = a = (pos >>> T8) + table_high;
+            <:table_addr = a = (pos <<< T4) & TABLE_MASK;
 
             // draw each row of the metatile array into the ppu
             for x in 0 .. METATILE_HEIGHT - 1 {
 
                 // prepare the ppu address
                 a = nes.ppu.status;
-                nes.ppu.address = a = (x <<< 6) + >:table_addr;
-                nes.ppu.address = a =             <:table_addr;
+                nes.ppu.address = a = (x <<< T32) + >:table_addr;
+                nes.ppu.address = a =               <:table_addr;
 
                 // draw a row of the metatile array
-                draw_metatile_row(array, size, a = x <<< 2);
+                _draw_metatile_row(array, size, a = x <<< T4);
             }
 
+
+            // set the attribute address
+            let ATTR_OFFSET = nes.ppu.NAMETABLE_OFFSET_ATTRIBUTE_MAP;
+            let ATTR_MASK   = nes.ppu.NAMETABLE_SIZE_ATTRIBUTE_MAP - 1;
+
+            a = nes.ppu.status;
+            nes.ppu.address = a = table_high        + >:ATTR_OFFSET;
+            nes.ppu.address = a = (pos & ATTR_MASK) + <:ATTR_OFFSET;
+
             // write the attribute data afterward
-            // TODO...
+            x = 0;
+            do {
+                y = a = x++;
+                y = a = array[y];
+                nes.ppu.data = a = metatiles_pal[y];
+            } while x < size;
         }
 
+
         // draw a single line of the metatile
-        func draw_metatile_row (array : *u8 in p0, size : u8 in b2, row : u8 in b3) {
+        func _draw_metatile_row (array : *u8 in p0, size : u8 in b2, row : u8 in b3) {
 
             // store the address of the metatile to write
             var meta_addr @ &p4 : *u8;
@@ -87,10 +102,15 @@ namespace tilemap {
             // for each metatile in the array
             y = 0;
             do {
-                // find the address of the data composing the metatile
-                meta_indx = a = array[y++];
-                >:meta_addr = a = (meta_indx >>> METATILE_WIDTH) + >:&metatiles;
-                <:meta_addr = a = (meta_indx <<< METATILE_WIDTH) + row;
+
+                // find the metatile definition address
+                a = array[y++];
+                if a != meta_indx {
+                    // compute the new address if the metatile is different
+                    meta_indx = a;
+                    >:meta_addr = a = (meta_indx >>> 4) + >:&metatiles;
+                    <:meta_addr = a = (meta_indx <<< 4) + row;
+                }
 
                 // draw four tiles
                 tmp = y;
@@ -98,6 +118,7 @@ namespace tilemap {
                     nes.ppu.data = a = meta_addr[y];
                 }
                 y = tmp;
+
             } while y < size;
         }
     }

@@ -60,6 +60,17 @@ in chr {
 // specify that something should be OFF
 let OFF = 0;
 
+// used to perform products or divides by power of two
+let T2   = 1;
+let T4   = 2;
+let T8   = 3;
+let T16  = 4;
+let T32  = 5;
+let T64  = 6;
+let T128 = 7;
+let T256 = 8;
+
+
 // push the registers on the stack to switch context
 inline func push_registers () {
     push(a);
