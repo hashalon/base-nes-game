@@ -17,6 +17,10 @@ namespace video {
 
         // current scroll
         var scroll : u8;
+
+        // used to read a sequence of numbers and write them into the PPU buffer
+        var data_ptr  : *u8;
+        var data_size :  u8;
     }
 
     // bit map for drawing
@@ -26,16 +30,17 @@ namespace video {
 
     in program {
 
+        // interrupt called at the end of every frame
         #[nmi] func vblank () {
             save_registers();
-            x = scroll;
-            scroll = ++x;
-            set_scroll(x, 0);
+            ++scroll;
+            set_scroll(scroll, 0);
             submit_oam_to_ppu();
             irq_counter = a = 0;
             load_registers();
         }
 
+        // interrupt called at every scanline
         #[irq] func scanline () {
             save_registers();
             ++irq_counter;
@@ -74,6 +79,22 @@ namespace video {
         } while !zero;
     }
     inline func set_ppu_data_array (ptr : *u8 in p0, len : u8 in b2) {
+        y = 0;
+        do {
+            nes.ppu.data = a = ptr[y++];
+        } while y < len;
+    }
+
+    // write a single value in the PPU buffer
+    inline func write_value_in_ppu (val : u8 in x, size : u8 in y) {
+        do {
+            nes.ppu.data = val;
+            --size;
+        } while !zero;
+    }
+
+    // write an array in the PPU buffer
+    inline func write_array_in_ppu (let ptr : *u8, let len : u8) {
         y = 0;
         do {
             nes.ppu.data = a = ptr[y++];

@@ -8,6 +8,7 @@ import "src/define";
 import "src/video";
 import "src/joypad";
 import "src/tilemap";
+import "src/sprite";
 
 
 in program {
@@ -27,7 +28,6 @@ in program {
 
 		video.set_ppu_address(nes.ppu.ADDRESS_NAMETABLE_0);
 		tilemap.fill_nametable(a = 0x04, a = 0b00011011);
-		//palette.init();
 		video.reset_scroll();
 
 		// re-enable rendering
