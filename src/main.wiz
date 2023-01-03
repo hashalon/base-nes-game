@@ -9,6 +9,7 @@ import "src/video";
 import "src/joypad";
 import "src/tilemap";
 import "src/sprite";
+import "src/palette";
 
 
 in program {

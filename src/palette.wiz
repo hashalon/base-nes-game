@@ -1,0 +1,44 @@
+import "src/nes";
+import "src/define";
+//import "src/video";
+
+
+namespace palette {
+
+    /**
+    * allow to load palettes or change a single color of a palette 
+    */
+
+    in program {
+
+        // load a portion of palette
+        func load_palette (
+            start :  u8 in x, 
+            pal   : *u8 in p0, 
+            size  :  u8 in b2
+        ) {
+            _set_address(start);
+
+            // copy the palette buffer into the ppu
+            y = 0;
+            do {
+                nes.ppu.data = a = pal[y++];
+            } while y < size;
+        }
+
+
+        // change a color of a palette
+        func change_color (index : u8 in x, color : u8 in y) {
+            _set_address(index);
+            nes.ppu.data = y;
+        }
+
+
+        inline func _set_address (index : u8 in x) {
+            // prepare the ppu address
+            a = nes.ppu.status;
+            nes.ppu.address = a = >:nes.ppu.ADDRESS_PALETTE_DATA;
+            nes.ppu.address = index;
+        }
+    }
+}

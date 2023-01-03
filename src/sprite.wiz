@@ -1,28 +1,33 @@
-/**
- * Handle palette
- */
-
 import "src/nes";
 import "src/define";
-import "src/video";
+//import "src/video";
+
 
 namespace sprite {
+
+    /**
+    * Metasprite are composed of any amount of arbitrary sprites
+    * They are stored in constant buffers with x and y sprite offset,
+    * tile index and attribute data.
+    */
 
     in program {
 
         // draw a metasprite on the screen
-        func place_metasprite (
+        func draw_metasprite (
             from  : *u8 in p0, // buffer to copy from
             to    : *u8 in p2, // buffer to copy to (located in oam_buffer)
             size  :  u8 in y,  // number of bytes to copy
             pos_x :  u8 in b4, // x position on screen
             pos_y :  u8 in b5  // y position on screen
         ) {
+            // the buffers are copied in reverse order to 
+            // reduce the number of CPU operations necessary
             do {
-                to[size] = a = from[size--] + pos_x;
-                to[size] = a = from[size--];
-                to[size] = a = from[size--];
-                to[size] = a = from[size--] + pos_y;
+                to[size--] = a = from[size] + pos_x;
+                to[size--] = a = from[size]; // attribute
+                to[size--] = a = from[size]; // tile index
+                to[size--] = a = from[size] + pos_y;
             } while !zero;
         }
     }
