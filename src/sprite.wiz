@@ -7,31 +7,23 @@ import "src/define";
 import "src/video";
 
 namespace sprite {
-    
-    in zeropage {
-
-    }
 
     in program {
 
         // draw a metasprite on the screen
-        // set x to zero before calling this function the first time
-        // then it can be called multiple consecutive times
-        func draw_metasprite (
-            def  :*u8 in p0, 
-            size : u8 in b2, 
-            posx : u8 in b3, 
-            posy : u8 in b4
+        func place_metasprite (
+            from  : *u8 in p0, // buffer to copy from
+            to    : *u8 in p2, // buffer to copy to (located in oam_buffer)
+            size  :  u8 in y,  // number of bytes to copy
+            pos_x :  u8 in b4, // x position on screen
+            pos_y :  u8 in b5  // y position on screen
         ) {
-            // use 'x' to keep track of the sprite to edit
-            // x = 0; // only before the first call
-            y = 0;
             do {
-                oam_buffer[x++] = a = def[y++] + posy;
-                oam_buffer[x++] = a = def[y++];
-                oam_buffer[x++] = a = def[y++];
-                oam_buffer[x++] = a = def[y++] + posx;
-            } while y < size;
+                to[size] = a = from[size--] + pos_x;
+                to[size] = a = from[size--];
+                to[size] = a = from[size--];
+                to[size] = a = from[size--] + pos_y;
+            } while !zero;
         }
     }
 }
