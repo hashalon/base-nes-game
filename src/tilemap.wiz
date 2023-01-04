@@ -5,31 +5,35 @@ import "src/video";
 namespace tilemap {
 
     /**
-    * Metatile  is composed of 17 Bytes (4 * 4 tiles + 1 attribute)
-    * Metatable is composed of 64 Bytes (8 * 8 metatiles)
+    * Allow to draw a complex background using metatiles
+    * Or text box and HUD
     */
 
+
+    /**
+    * Metatile Environment
+    *
+    * Metatile  is composed of 17 Bytes (4 * 4 tiles + 1 attribute)
+    * Metatable is composed of 64 Bytes (8 * 8 metatiles)
+    * Each metatile is composed of four rows.
+    * To optimize drawing, we draw an array of metatiles at once and rows by rows.
+    */
+
+    // define the starting point of each metatables
+    let METATABLE_0 = 0x00;
+    let METATABLE_1 = 0x40;
+    let METATABLE_2 = 0x80;
+    let METATABLE_3 = 0xC0;
+
+    let METATABLE_WIDTH  = 8;
+    let METATABLE_HEIGHT = 8;
+    let METATABLE_SIZE   = 0x40;
+    let METATILE_WIDTH   = 4;
+    let METATILE_HEIGHT  = 4;
+    let METATILE_SIZE    = 0x10;
+
+
     in program {
-
-        /**
-        * Each metatile is composed of four rows.
-        * To optimize drawing, we draw an array of metatiles at once and rows by rows.
-        */
-
-
-        // define the starting point of each metatables
-        let METATABLE_0 = 0x00;
-        let METATABLE_1 = 0x40;
-        let METATABLE_2 = 0x80;
-        let METATABLE_3 = 0xC0;
-
-        let METATABLE_WIDTH  = 8;
-        let METATABLE_HEIGHT = 8;
-        let METATABLE_SIZE   = 0x40;
-        let METATILE_WIDTH   = 4;
-        let METATILE_HEIGHT  = 4;
-        let METATILE_SIZE    = 0x10;
-
 
         // draw a group of metatiles
         func draw_metatiles (pos : u8 in b8, array : *u8 in p0, size : u8 in b2) {
@@ -76,7 +80,7 @@ namespace tilemap {
 
 
         // draw a single line of the metatile
-        func _draw_metatile_row (array : *u8 in p0, size : u8 in b2, row : u8 in b3) {
+        inline func _draw_metatile_row (array : *u8 in p0, size : u8 in b2, row : u8 in b3) {
 
             // store the address of the metatile to write
             var meta_addr @ &p4 : *u8;

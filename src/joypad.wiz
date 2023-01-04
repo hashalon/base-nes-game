@@ -13,7 +13,7 @@ namespace joypad {
 	}
 
 	// pool the state of both joypads
-	inline func update () {
+	inline func tick () {
 
 		// store previous state
 		var prev1 @ &b1 : u8;

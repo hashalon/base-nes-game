@@ -45,7 +45,7 @@ in program {
 
 		// infinite loop
 		do {
-			joypad.update();
+			joypad.tick();
 
 			/* put code here
 			// <code>

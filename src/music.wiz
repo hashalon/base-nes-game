@@ -1,0 +1,38 @@
+import "src/nes";
+import "src/define";
+
+namespace music {
+
+    /**
+    * Play musics that are hardcoded in memory
+    */
+
+    in zeropage {
+        var pulse1_index  :  u8;
+        var pulse1_melody : *u8;
+    }
+
+    in program {
+
+        inline func tick () {
+
+            // the channel is disabled -> move on to next note
+            if {a = nes.apu.enable & nes.apu.ENABLE_PULSE1;} && zero {
+                y = pulse1_index;
+                nes.apu.pulse1.control = a = pulse1_melody[++y];
+                nes.apu.pulse1.sweep   = a = pulse1_melody[++y];
+                nes.apu.pulse1.low     = a = pulse1_melody[++y];
+                nes.apu.pulse1.high    = a = pulse1_melody[++y];
+                pulse1_index = y;
+            }
+
+
+        }
+
+        func update_channel () {
+
+        }
+
+    }
+
+}

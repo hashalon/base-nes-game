@@ -32,9 +32,11 @@ namespace video {
 
         // interrupt called at the end of every frame
         #[nmi] func vblank () {
-            save_registers();
-            ++scroll;
-            set_scroll(scroll, 0);
+            store_registers();
+            {
+                ++scroll;
+                set_scroll(scroll, 0);
+            }
             submit_oam_to_ppu();
             irq_counter = a = 0;
             load_registers();
@@ -42,7 +44,10 @@ namespace video {
 
         // interrupt called at every scanline
         #[irq] func scanline () {
-            save_registers();
+            store_registers();
+            {
+
+            }
             ++irq_counter;
             load_registers();
         }

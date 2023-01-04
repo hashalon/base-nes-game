@@ -13,7 +13,7 @@ namespace player {
         var timer1, timer2 : u8;
 	}
 
-    inline func update () {
+    inline func tick () {
 
         // update the first player
         if {a = joypad.press1 & nes.joy.mask.A;} && !zero {

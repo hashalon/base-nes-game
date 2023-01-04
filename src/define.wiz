@@ -85,8 +85,8 @@ inline func pop_registers () {
     a = pop();
 }
 
-// save registers in memory to execute interrupt
-inline func save_registers () {
+// store registers in memory to execute interrupt
+inline func store_registers () {
 	tmp_a = a;
 	tmp_x = x;
 	tmp_y = y;
