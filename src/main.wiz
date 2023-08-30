@@ -10,6 +10,7 @@ import "src/joypad";
 import "src/tilemap";
 import "src/sprite";
 import "src/palette";
+import "src/physics";
 
 
 in program {

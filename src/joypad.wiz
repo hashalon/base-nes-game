@@ -4,32 +4,41 @@ import "src/define";
 
 namespace joypad {
 
-	in zeropage {
-		var joy1, joy2 : u8;
+	// state of a gamepad
+	struct gamepad {
+		current_state : u8,
+		just_pressed  : u8,
+		just_released : u8
 	}
 
 	in ram {
-		var press1, press2 : u8;
+		var pad1, pad2 : gamepad;
 	}
 
 	// pool the state of both joypads
 	inline func tick () {
 
 		// store previous state
-		var prev1 @ &b1 : u8;
-		var prev2 @ &b2 : u8;
-		prev1 = a = joy1;
-		prev2 = a = joy2;
+		var prev1 @ &b3 : u8;
+		var prev2 @ &b4 : u8;
+		prev1 = a = pad1.current_state;
+		prev2 = a = pad2.current_state;
 
 		// pool each button input of each joypad
 		nes.joy.output = a = 1;
 		nes.joy.output = a = 0;
-		joy1 = a = pool(0);
-		joy2 = a = pool(1);
+		
+		// store current state
+		var curr1 @ &b1 : u8;
+		var curr2 @ &b2 : u8;
+		curr1 = a = pool(0); pad1.current_state = a; // store new current state
+		curr2 = a = pool(1); pad2.current_state = a; // store new current state
 
-		// deduce the button that have been just pressed
-		press1 = a = ~prev1 & joy1;
-		press2 = a = ~prev2 & joy2;
+		// deduce the button that have been just pressed or just released
+		pad1.just_pressed  = a = ~prev1 & curr1;
+		pad2.just_pressed  = a = ~prev2 & curr2;
+		pad1.just_released = a = ~curr1 & prev1;
+		pad2.just_released = a = ~curr2 & prev2;
 	}
 
 	in program {
