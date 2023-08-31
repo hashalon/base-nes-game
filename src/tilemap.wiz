@@ -113,22 +113,28 @@ namespace tilemap {
 
         // fill a whole nametable with a given tile
         func fill_nametable (tile : u8 in b0, pal : u8 in b1) {
-            // 1st part tilemap
             a = tile;
-            for x in >:nes.ppu.NAMETABLE_SIZE_TILE_MAP .. 1 by -1 {
+
+            // 1st part tilemap
+            x = >:nes.ppu.NAMETABLE_SIZE_TILE_MAP;
+            do {
                 for y in 0 .. 0xff {
                     nes.ppu.data = a;
                 }
-            }
+            } while {--x;} && !zero;
+
             // 2nd part tilemap
-            for x in <:nes.ppu.NAMETABLE_SIZE_TILE_MAP .. 1 by -1 {
+            x = <:nes.ppu.NAMETABLE_SIZE_TILE_MAP;
+            do {
                 nes.ppu.data = a;
-            }
+            } while {--x;} && !zero;
+
             // attribute map
             a = pal;
-            for x in nes.ppu.NAMETABLE_SIZE_ATTRIBUTE_MAP .. 1 by -1 {
+            x = nes.ppu.NAMETABLE_SIZE_ATTRIBUTE_MAP;
+            do {
                 nes.ppu.data = a;
-            }
+            } while {--x;} && !zero;
         }
 
     }

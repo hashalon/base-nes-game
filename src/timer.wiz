@@ -1,0 +1,26 @@
+
+import "src/nes";
+import "src/define";
+
+namespace timer {
+
+    // number of timers that running in parallel
+    let SIZE = 12; // (maximum: 256)
+
+    in ram {
+        // timers to decrement every frame
+        var timers : [u8; SIZE];
+    }
+
+    in program {
+        // iterate over the buffer and decrement the timers
+        inline func tick () {
+            for y in 0 .. SIZE - 1 {
+                if {a = timers[y];} && !zero {
+                    timers[y] = --a;
+                }
+            }
+        }
+    }
+
+}

@@ -11,6 +11,7 @@ import "src/tilemap";
 import "src/sprite";
 import "src/palette";
 import "src/physics";
+import "src/timer";
 
 
 in program {

@@ -4,6 +4,8 @@
 
 import "src/nes";
 import "src/define";
+import "src/timer";
+import "src/physics";
 
 namespace video {
 
@@ -36,6 +38,8 @@ namespace video {
             {
                 ++scroll;
                 set_scroll(scroll, 0);
+                timer.tick();
+                physics.tick();
             }
             submit_oam_to_ppu();
             irq_counter = a = 0;

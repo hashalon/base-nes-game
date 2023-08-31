@@ -5,18 +5,15 @@ import "src/define";
 namespace physics {
 
     // number of physics objects running at the same time
-    let CAPACITY = 8 * 32; // (= 256; 32 is maximum)
+    let CAPACITY = 8 * 4; // (maximum: 8 * 32)
 
     in ram {
         // contains position and velocity for various bodies
-        // - [0] : position x high bits
-        // - [1] : position x low  bits
-        // - [2] : velocity x
-        // - [3] : acceleration x
-        // - [4] : position y high bits
-        // - [5] : position y low  bits
-        // - [6] : velocity y
-        // - [7] : acceleration y
+        // [?] the sequence is repeated twice for x and y coordinates
+        // - [0] : acceleration
+        // - [1] : velocity
+        // - [2] : position low  bits
+        // - [3] : position high bit
         var bodies : [u8; CAPACITY];
 
         // size of the `bodies` buffer
@@ -25,33 +22,33 @@ namespace physics {
 
     in program {
         // update the position of the body based on its velocity
-        func tick () {
-            var acceleration @ &b0 : u8;
-            var velocity     @ &b1 : u8;
+        inline func tick () {
+            var accel @ &b0 : u8;
+            var vel   @ &b1 : u8;
 
             // iterate over the buffer
-            y = size;
+            y = 0;
             do {
                 // apply the acceleration to the velocity
-                if {a = bodies[--y];} && negative {
-                    acceleration = a &= 0x7f;
-                    a = bodies[--y] - acceleration; 
+                if {a = bodies[y];} && negative {
+                    accel = a &= 0x7f;
+                    a = bodies[++y] - accel; 
                 } else {
-                    acceleration = a;
-                    a = bodies[--y] + acceleration;
+                    accel = a;
+                    a = bodies[++y] + accel;
                 }
 
                 // apply the velocity to the position
                 if {bodies[y] = a;} && negative {
-                    velocity  = a &= 0x7f;
-                    bodies[y] = a = bodies[--y] - velocity;
-                    bodies[y] = a = bodies[--y] -# 0;
+                    vel = a &= 0x7f;
+                    bodies[y] = a = bodies[++y] - vel;
+                    bodies[y] = a = bodies[++y] -# 0;
                 } else {
-                    velocity  = a;
-                    bodies[y] = a = bodies[--y] + velocity;
-                    bodies[y] = a = bodies[--y] +# 0;
+                    vel = a;
+                    bodies[y] = a = bodies[++y] + vel;
+                    bodies[y] = a = bodies[++y] +# 0;
                 }
-            } while !zero;
+            } while y < size;
         }
     }
 
