@@ -4,15 +4,15 @@ import "src/define";
 
 namespace joypad {
 
-	// state of a gamepad
-	struct gamepad {
+	// state of a joypad
+	struct Joypad {
 		current_state : u8,
 		just_pressed  : u8,
 		just_released : u8
 	}
 
 	in ram {
-		var pad1, pad2 : gamepad;
+		var pad1, pad2 : Joypad;
 	}
 
 	// pool the state of both joypads

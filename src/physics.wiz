@@ -30,23 +30,17 @@ namespace physics {
             y = 0;
             do {
                 // apply the acceleration to the velocity
-                if {a = bodies[y];} && negative {
-                    accel = a &= 0x7f;
-                    a = bodies[++y] - accel; 
-                } else {
-                    accel = a;
-                    a = bodies[++y] + accel;
-                }
+                accel = a = bodies[y];
+                vel   = a = bodies[++y] + accel;
+                bodies[y] = a;
 
                 // apply the velocity to the position
-                if {bodies[y] = a;} && negative {
-                    vel = a &= 0x7f;
-                    bodies[y] = a = bodies[++y] - vel;
-                    bodies[y] = a = bodies[++y] -# 0;
-                } else {
-                    vel = a;
-                    bodies[y] = a = bodies[++y] + vel;
-                    bodies[y] = a = bodies[++y] +# 0;
+                if {bodies[y] = a = bodies[++y] + vel;} && carry {
+                    if negative {
+                        bodies[y] = a = bodies[++y] - 1;
+                    } else {
+                        bodies[y] = a = bodies[++y] + 1;
+                    }
                 }
             } while y < size;
         }

@@ -107,6 +107,16 @@ inline func assign (let target : *u8, let value : u16) {
 }
 
 
+// clamp a value in both positive and negative
+inline func clamp_range (value : u8 in a, let min_max : u8) : u8 in a {
+	if negative {
+		if a < ~min_max {a = ~min_max;}
+	} else {
+		if a >  min_max {a =  min_max;}
+	}
+	return a;
+}
+
 namespace math {
 	in program {
 		// define a sine over a period of 2PI

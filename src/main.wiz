@@ -12,6 +12,7 @@ import "src/sprite";
 import "src/palette";
 import "src/physics";
 import "src/timer";
+import "src/player";
 
 
 in program {

@@ -1,16 +1,33 @@
 
 import "src/nes";
 import "src/define";
-import "src/video";
 import "src/joypad";
+import "src/timer";
+import "src/physics";
+
 
 namespace player {
 
-    let JUMP_TIMER = 5;
-    let JUMP_TYPE  = 0b10000000;
+    let MAX_MOTION  = (1 * 16 / 60) as u8;
+    let COYOTE_TIME = (2 * 60) as u8;
+
+    enum State : u8 {
+        Airborne,
+        Swimming,
+        Sliding,
+        Climbing,
+        OnGround,
+        OnWall,
+        Hit,
+    }
+
+    struct Player {
+        life  : u8,
+        state : State,
+    }
 
 	in ram {
-        var timer1, timer2 : u8;
+        var player1, player2 : Player;
 	}
 
     inline func tick () {
@@ -21,7 +38,7 @@ namespace player {
             // player just left the ground -> jump
             // player is in the air -> set the timer, he might touch the ground on the comming ticks
             
-            if {a = timer1} && !zero {
+            if {a = timer1;} && !zero {
 
             } else {
                 // 
@@ -35,6 +52,17 @@ namespace player {
     }
 
 	in program {
+        
+        // handle horizontal motion using player inputs
+        func handle_motion(joy : u8 in b0, index : u8 in y) {
+            let bodies = physics.bodies;
+
+            // change the value of the acceleration
+            bodies[index] = a = x = joypad.to_horizontal(joy);
+            
+            // clamp the horizontal velocity
+            bodies[index] = a = clamp_range(bodies[++index], MAX_MOTION);
+        }
 
 		// read a joypad
 		func pool () {
