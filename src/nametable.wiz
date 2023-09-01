@@ -1,8 +1,8 @@
 import "src/nes";
 import "src/define";
-import "src/video";
+//import "src/video";
 
-namespace tilemap {
+namespace nametable {
 
     /**
     * Allow to draw a complex background using metatiles
@@ -14,23 +14,13 @@ namespace tilemap {
     * Metatile Environment
     *
     * Metatile  is composed of 17 Bytes (4 * 4 tiles + 1 attribute)
-    * Metatable is composed of 64 Bytes (8 * 8 metatiles)
+    * Metatable is composed of 60 Bytes (8 * 7 metatiles)
     * Each metatile is composed of four rows.
     * To optimize drawing, we draw an array of metatiles at once and rows by rows.
     */
-
-    // define the starting point of each metatables
-    let METATABLE_0 = 0x00;
-    let METATABLE_1 = 0x40;
-    let METATABLE_2 = 0x80;
-    let METATABLE_3 = 0xC0;
-
-    let METATABLE_WIDTH  = 8;
-    let METATABLE_HEIGHT = 8;
-    let METATABLE_SIZE   = 0x40;
+    
     let METATILE_WIDTH   = 4;
     let METATILE_HEIGHT  = 4;
-    let METATILE_SIZE    = 0x10;
 
 
     in program {
@@ -74,7 +64,7 @@ namespace tilemap {
             do {
                 y = a = x++;
                 y = a = array[y];
-                nes.ppu.data = a = metatiles_pal[y];
+                nes.ppu.data = a = metatile.palettes[y];
             } while x < size;
         }
 
@@ -96,7 +86,7 @@ namespace tilemap {
                 if a != meta_indx {
                     // compute the new address if the metatile is different
                     meta_indx = a;
-                    >:meta_addr = a = (meta_indx >>> 4) + >:&metatiles;
+                    >:meta_addr = a = (meta_indx >>> 4) + >:&metatile.tiles;
                     <:meta_addr = a = (meta_indx <<< 4) + row;
                 }
 
@@ -112,7 +102,7 @@ namespace tilemap {
 
 
         // fill a whole nametable with a given tile
-        func fill_nametable (tile : u8 in b0, pal : u8 in b1) {
+        func fill (tile : u8 in b0, pal : u8 in b1) {
             a = tile;
 
             // 1st part tilemap

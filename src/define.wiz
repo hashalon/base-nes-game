@@ -29,14 +29,19 @@ bank chr                : [chrdata; 0x2000]; // for graphics
 in zeropage {
 
 	// 16 Bytes of temporary variables to work with
-	var b0, b1, b2, b3, b4, b5, b6, b7 : u8;
-	var b8, b9, bA, bB, bC, bD, bE, bF : u8;
+	var 
+	b0, b1, b2, b3, b4, b5, b6, b7,
+	b8, b9, bA, bB, bC, bD, bE, bF : u8;
 
-	// map the 16 Bytes with words and pointers of 16 bits
-	var w0 @ &b0, w2 @ &b2, w4 @ &b4, w6 @ &b6 : u16;
-	var w8 @ &b8, wA @ &bA, wC @ &bC, wE @ &bE : u16;
-	var p0 @ &b0, p2 @ &b2, p4 @ &b4, p6 @ &b6 : *u8;
-	var p8 @ &b8, pA @ &bA, pC @ &bC, pE @ &bE : *u8;
+	// map the 16 Bytes with words
+	var 
+	w0 @ &b0, w2 @ &b2, w4 @ &b4, w6 @ &b6,
+	w8 @ &b8, wA @ &bA, wC @ &bC, wE @ &bE : u16;
+
+	// map the 16 Bytes with pointers
+	var 
+	p0 @ &b0, p2 @ &b2, p4 @ &b4, p6 @ &b6,
+	p8 @ &b8, pA @ &bA, pC @ &bC, pE @ &bE : *u8;
 
 
 	// save the state of registers while executing interrupts
@@ -47,9 +52,12 @@ in oam {
 	var oam_buffer : [u8; 0x100];
 }
 
-in program {
-	const metatiles @ 0xF000 = embed "res/metatiles.bin";
-	const metatiles_pal      = embed "res/metatiles_palette.bin";
+namespace metatile {
+	in program {
+		const tiles @ 0xF000 = embed "res/metatile/tiles.bin";
+		const palettes       = embed "res/metatile/palettes.bin";
+		const colliders      = embed "res/metatile/colliders.bin";
+	}
 }
 
 in chr {
@@ -108,11 +116,11 @@ inline func assign (let target : *u8, let value : u16) {
 
 
 // clamp a value in both positive and negative
-inline func clamp_range (value : u8 in a, let min_max : u8) : u8 in a {
+inline func clamp (value : u8 in a, let min : u8, let max : u8) : u8 in a {
 	if negative {
-		if a < ~min_max {a = ~min_max;}
+		if a < min {a = min;}
 	} else {
-		if a >  min_max {a =  min_max;}
+		if a > max {a = max;}
 	}
 	return a;
 }

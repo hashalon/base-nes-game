@@ -17,17 +17,17 @@ namespace sprite {
         func draw_metasprite (
             from  : *u8 in p0, // buffer to copy from
             to    : *u8 in p2, // buffer to copy to (located in oam_buffer)
-            size  :  u8 in y,  // number of bytes to copy
+            last  :  u8 in y,  // index of the last byte to copy
             pos_x :  u8 in b4, // x position on screen
             pos_y :  u8 in b5  // y position on screen
         ) {
             // the buffers are copied in reverse order to 
             // reduce the number of CPU operations necessary
             do {
-                to[size--] = a = from[size] + pos_x;
-                to[size--] = a = from[size]; // attribute
-                to[size--] = a = from[size]; // tile index
-                to[size--] = a = from[size] + pos_y;
+                to[y--] = a = from[y] + pos_x;
+                to[y--] = a = from[y]; // attribute
+                to[y--] = a = from[y]; // tile index
+                to[y--] = a = from[y] + pos_y;
             } while !zero;
         }
     }

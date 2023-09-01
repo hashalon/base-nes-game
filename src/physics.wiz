@@ -5,44 +5,68 @@ import "src/define";
 namespace physics {
 
     // number of physics objects running at the same time
-    let CAPACITY = 8 * 4; // (maximum: 8 * 32)
+    let CAPACITY = 8; // (maximum: 8 * 32)
 
     in ram {
-        // contains position and velocity for various bodies
-        // [?] the sequence is repeated twice for x and y coordinates
-        // - [0] : acceleration
-        // - [1] : velocity
-        // - [2] : position low  bits
-        // - [3] : position high bit
-        var bodies : [u8; CAPACITY];
+        // positions, velocities and accelerations of objects
+        var positions_high, positions_low, velocities, accelerations : [u8; CAPACITY];
 
-        // size of the `bodies` buffer
-        var size : u8;
+        // number of objects being simulated
+        var amount : u8;
     }
 
     in program {
+        // maximum velocities for each objects
+        const max_velocities : [u8; CAPACITY] = [
+            0x7f, 0x7f, 0x7f, 0x7f,
+            0x7f, 0x7f, 0x7f, 0x7f
+        ];
+
         // update the position of the body based on its velocity
         inline func tick () {
-            var accel @ &b0 : u8;
-            var vel   @ &b1 : u8;
+            // temporary storages
+            var 
+            pos_hi  @ &b0, 
+            pos_lo  @ &b1,
+            vel     @ &b2, 
+            max_vel @ &b3,
+            accel   @ &b4 : u8;
 
             // iterate over the buffer
-            y = 0;
+            y = amount;
             do {
-                // apply the acceleration to the velocity
-                accel = a = bodies[y];
-                vel   = a = bodies[++y] + accel;
-                bodies[y] = a;
+                // get first components of object
+                accel   = a = accelerations [y];
+                max_vel = a = max_velocities[y];
+                vel     = a = velocities    [y] + accel;
 
-                // apply the velocity to the position
-                if {bodies[y] = a = bodies[++y] + vel;} && carry {
-                    if negative {
-                        bodies[y] = a = bodies[++y] - 1;
-                    } else {
-                        bodies[y] = a = bodies[++y] + 1;
+                // compute the velocity to use
+                if negative {
+                    max_vel = a = ~max_vel;
+                    if {a = vel;} && a > max_vel {
+                        vel = a = max_vel;
                     }
+                } else if a < max_vel {
+                    vel = a = max_vel;
                 }
-            } while y < size;
+                velocities[y] = a;
+
+                // compute the position
+                pos_lo = a = positions_low[y] + vel;
+                if negative {
+                    a = positions_high[y] - 1;
+                } else {
+                    a = positions_high[y] + 1;
+                }
+                pos_hi = a;
+
+                // check that the object is not stuck inside of a block
+                // TODO
+
+                positions_low [y] = a = pos_lo;
+                positions_high[y] = a = pos_hi;
+
+            } while {--y;} && !zero;
         }
     }
 

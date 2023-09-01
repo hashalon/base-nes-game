@@ -7,7 +7,7 @@ import "src/nes";
 import "src/define";
 import "src/video";
 import "src/joypad";
-import "src/tilemap";
+import "src/nametable";
 import "src/sprite";
 import "src/palette";
 import "src/physics";
@@ -31,7 +31,7 @@ in program {
 		video.wait_ppu_init();
 
 		video.set_ppu_address(nes.ppu.ADDRESS_NAMETABLE_0);
-		tilemap.fill_nametable(a = 0x04, a = 0b00011011);
+		nametable.fill(a = 0x04, a = 0b00011011);
 		video.reset_scroll();
 
 		// re-enable rendering
