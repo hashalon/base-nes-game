@@ -5,7 +5,10 @@ import "src/define";
 namespace physics {
 
     // number of physics objects running at the same time
-    let CAPACITY = 8; // (maximum: 8 * 32)
+    let CAPACITY = 8; // (maximum: 126)
+
+    // size of a tile in subpixels
+    let TILE_SIZE = 8 * 8;
 
     in ram {
         // positions, velocities and accelerations of objects
@@ -16,58 +19,106 @@ namespace physics {
     }
 
     in program {
-        // maximum velocities for each objects
+        // maximum velocities for each object
         const max_velocities : [u8; CAPACITY] = [
             0x7f, 0x7f, 0x7f, 0x7f,
             0x7f, 0x7f, 0x7f, 0x7f
         ];
 
-        // update the position of the body based on its velocity
-        inline func tick () {
-            // temporary storages
-            var 
-            pos_hi  @ &b0, 
-            pos_lo  @ &b1,
-            vel     @ &b2, 
-            max_vel @ &b3,
-            accel   @ &b4 : u8;
+        // collider size for each object
+        const colliders : [u8; CAPACITY] = [
+            TILE_SIZE, TILE_SIZE, TILE_SIZE, TILE_SIZE,
+            TILE_SIZE, TILE_SIZE, TILE_SIZE, TILE_SIZE
+        ];
+    }
 
-            // iterate over the buffer
-            y = amount;
-            do {
-                // get first components of object
-                accel   = a = accelerations [y];
-                max_vel = a = max_velocities[y];
-                vel     = a = velocities    [y] + accel;
+    // update the position of the body based on its velocity
+    inline func tick () {
+        // temporary storages
+        var 
+        vel     @ &b0, 
+        max_vel @ &b1,
+        accel   @ &b2 : u8;
 
-                // compute the velocity to use
-                if negative {
-                    max_vel = a = ~max_vel;
-                    if {a = vel;} && a > max_vel {
-                        vel = a = max_vel;
-                    }
-                } else if a < max_vel {
+        // iterate over the buffer
+        y = amount;
+        do {
+            // get first components of object
+            accel   = a = accelerations [y];
+            max_vel = a = max_velocities[y];
+            vel     = a = velocities    [y] + accel;
+
+            // compute the velocity to use
+            if negative {
+                max_vel = a = ~max_vel;
+                if {a = vel;} && a > max_vel {
                     vel = a = max_vel;
                 }
-                velocities[y] = a;
+            } else if a < max_vel {
+                vel = a = max_vel;
+            }
+            velocities[y] = a;
 
-                // compute the position
-                pos_lo = a = positions_low[y] + vel;
-                if negative {
-                    a = positions_high[y] - 1;
-                } else {
-                    a = positions_high[y] + 1;
-                }
-                pos_hi = a;
+            // compute the position
+            positions_low[y] = a = positions_low[y] + vel;
+            if negative {
+                a = positions_high[y] - 1;
+            } else {
+                a = positions_high[y] + 1;
+            }
+            positions_high[y] = a;
 
-                // check that the object is not stuck inside of a block
-                // TODO
+        } while {--y;} && !zero;
+    }
 
-                positions_low [y] = a = pos_lo;
-                positions_high[y] = a = pos_hi;
+    // check for collision with the world
+    inline func check_collisions (index : u8 in b8) {
+        // temporary storage
+        var
+        pos_lo_x @ &b0,
+        pos_lo_y @ &b1,
+        pos_hi_x @ &b2,
+        pos_hi_y @ &b3,
+        coll_x   @ &b4,
+        coll_y   @ &b5,
+        vel_x    @ &b6,
+        vel_y    @ &b7 : u8;
 
-            } while {--y;} && !zero;
-        }
+        // x-axis
+        y = index;
+        vel_x    = a = velocities    [y];
+        coll_x   = a = colliders     [y];
+        pos_lo_x = a = positions_low [y];
+        pos_hi_x = a = positions_high[y];
+
+        // y-axis
+        ++y;
+        vel_y    = a = velocities    [y];
+        coll_y   = a = colliders     [y];
+        pos_lo_y = a = positions_low [y];
+        pos_hi_y = a = positions_high[y];
+
+        // get metatile
+        // get tile
+
+        // if collision, push back in the opposite direction
+
+    }
+
+    // TODO ???
+    // get the index of the metatile in the map
+    inline func _get_metatile_index (pos_x : u8 in b2, pos_y : u8 in b3) : u8 in y {
+        var tmp @ &b9 : u8;
+        tmp = a = pos_x & 0b11;
+        tmp = a = pos_y << 2 | tmp;
+        y   = a = ((pos_x & 0b11111100) << 3) | tmp;
+        return y;
+    }
+
+    // get the index of the tile in the metatile
+    inline func _get_tile_index (pos_x : u8 in b0, pos_y : u8 in b1) : u8 in y {
+        y = a = ((pos_x >> 2) | pos_y) >> 4;
+        return y;
     }
 
 }
